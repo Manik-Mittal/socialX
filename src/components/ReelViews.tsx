@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import type { VideoPlayer } from 'expo-video';
 import { AppState, Pressable, Text } from 'react-native';
@@ -9,10 +9,18 @@ import { colors } from '../theme';
 // Accumulate actual playback progress, not time spent buffering or paused.
 export function useReelView(player: VideoPlayer, id: string, authorId?: string, active = true) {
   const { session } = useAuth();
-  const focused = useRef(false);
-  useFocusEffect(useCallback(() => { focused.current = true; return () => { focused.current = false; player.pause(); }; }, [player]));
+  const [focused, setFocused] = useState(false);
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    // This cleanup also runs on unmount, after Expo may release the player.
+    // Only update React state here; never call native player methods.
+    return () => setFocused(false);
+  }, []));
   useEffect(() => {
-    if (!active || !session || session.user.id === authorId) return;
+    if (!focused) player.pause();
+  }, [focused, player]);
+  useEffect(() => {
+    if (!focused || !active || !session || session.user.id === authorId) return;
     let watched = 0;
     let previous = player.currentTime;
     let lastTick = Date.now();
@@ -25,7 +33,7 @@ export function useReelView(player: VideoPlayer, id: string, authorId?: string, 
       const delta = position - previous;
       const elapsed = (now - lastTick) / 1000;
       previous = position; lastTick = now;
-      if (!focused.current || AppState.currentState !== 'active' || !player.playing || player.status !== 'readyToPlay' || elapsed > 1.5) return;
+      if (AppState.currentState !== 'active' || !player.playing || player.status !== 'readyToPlay' || elapsed > 1.5) return;
       // Ignore seek jumps and loop resets. Count at most elapsed wall-clock time.
       if (delta > 0 && delta <= elapsed * Math.max(1, player.playbackRate) + 0.25) watched += Math.min(delta, elapsed);
       if (watched < 3 || sent || pending || now < retryAfter) return;
@@ -35,7 +43,7 @@ export function useReelView(player: VideoPlayer, id: string, authorId?: string, 
       }, () => { pending = false; retryAfter = Date.now() + 30000; });
     }, 500);
     return () => clearInterval(timer);
-  }, [active, authorId, id, player, session]);
+  }, [focused, active, authorId, id, player, session]);
 }
 
 export function CreatorViews({ id, authorId, dark = false }: { id: string; authorId?: string; dark?: boolean }) {

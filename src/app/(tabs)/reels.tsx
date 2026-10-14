@@ -34,7 +34,8 @@ function ReelPage({ reel, height, active }: { reel: VideoReel; height: number; a
   useEffect(() => {
     if (active) player.play();
     else player.pause();
-    return () => player.pause();
+    // useVideoPlayer releases the native player on unmount. Cleanup must not
+    // call methods on it; active=false handles pausing while still mounted.
   }, [active, player]);
 
   return (
