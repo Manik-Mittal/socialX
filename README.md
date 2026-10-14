@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SocialX
 
 Expo / React Native social app with Supabase authentication and account-backed data.
@@ -92,3 +93,6 @@ Video transcoding, server-side duration/content inspection, moderation, resumabl
 likes/comments, notifications, brand campaigns and payouts are not implemented.
 Uploaded codecs must be supported by the viewing device. Use MP4/H.264 for broad compatibility.
 This upload path is intended for a small controlled beta, not an unrestricted public launch.
+=======
+# socialX
+>>>>>>> origin/main
