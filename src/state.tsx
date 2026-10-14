@@ -16,6 +16,7 @@ type AppState = {
   updateProfile: (name: string, bio: string) => Promise<void>;
   addReel: (reel: Reel) => Promise<void>;
   cacheReel: (reel: Reel) => void;
+  removeCachedReel: (id: string) => void;
 };
 const StateContext = createContext<AppState | null>(null);
 
@@ -38,6 +39,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const offset = useRef(0);
   const locks = useRef(new Set<string>());
   const alive = useRef(true);
+  function removeCachedReel(id: string) {
+    setReels(current => current.filter(reel => reel.id !== id));
+    if (feedIds.includes(id)) offset.current = Math.max(0, offset.current - 1);
+    setFeedIds(current => current.filter(value => value !== id));
+    setSavedIds(current => current.filter(value => value !== id));
+  }
   const cacheReel = useCallback((reel: Reel) => setReels(current => [...new Map([...current, reel].map(item => [item.id, item])).values()]), []);
   const lock = (key: string) => { locks.current.add(key); setPending([...locks.current]); };
   const unlock = (key: string) => { locks.current.delete(key); if (alive.current) setPending([...locks.current]); };
@@ -125,7 +132,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }
   return <StateContext.Provider value={{ reels, feedIds, savedIds, followingHandles: following.map(person => person.handle), following, followers,
     profile, profileLoading, profileError, socialLoading, socialError, pending, hasMore,
-    retryProfile: refresh, refresh, loadMore, toggleSaved, toggleFollowing, updateProfile, addReel, cacheReel }}>
+    retryProfile: refresh, refresh, loadMore, toggleSaved, toggleFollowing, updateProfile, addReel, cacheReel, removeCachedReel }}>
     {userId && (socialError || actionError || socialLoading) ? <View style={{ padding: 12, backgroundColor: colors.accentSoft }}>
       <Text accessibilityRole={socialError || actionError ? 'alert' : undefined} style={{ fontSize: 14, color: colors.ink }}>{socialError || actionError || 'Loading your account…'}</Text>
       {!socialLoading && <Pressable onPress={() => void refresh()} accessibilityRole="button"><Text style={{ color: colors.accent, fontSize: 15, paddingTop: 8 }}>Retry / refresh</Text></Pressable>}

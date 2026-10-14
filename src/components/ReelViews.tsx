@@ -67,7 +67,7 @@ export function CreatorViews({ id, authorId, dark = false }: { id: string; autho
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, owner, retry]));
   if (!owner) return null;
-  return <Pressable accessibilityRole="button" accessibilityLabel="Refresh unique reel views" onPress={() => setRetry(value => value + 1)} style={{ paddingVertical: 10 }}>
-    <Text style={{ color: dark ? colors.white : colors.muted, fontSize: 15, fontWeight: '700' }}>{error || (count === null ? 'Loading views…' : `${count.toLocaleString()} unique ${count === 1 ? 'view' : 'views'}`)}</Text>
+  return <Pressable accessibilityRole="button" accessibilityLabel="Refresh reel views" onPress={() => setRetry(value => value + 1)} style={{ paddingVertical: 10 }}>
+    <Text style={{ color: dark ? colors.white : colors.muted, fontSize: 15, fontWeight: '700' }}>{error || (count === null ? 'Loading views…' : `${count.toLocaleString()} ${count === 1 ? 'view' : 'views'}`)}</Text>
   </Pressable>;
 }

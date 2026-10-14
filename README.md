@@ -12,7 +12,7 @@ npx expo start --web --clear
 
 Copy `.env.example` to `.env.local` and enter the project URL and publishable key.
 Never use a secret or service-role key in the app.
-Follow [the Supabase setup guide](supabase/README.md) and run the five SQL migrations in order.
+Follow [the Supabase setup guide](supabase/README.md) and run the six SQL migrations in order.
 Native users need a development build when introducing new native modules.
 
 ## Connected features

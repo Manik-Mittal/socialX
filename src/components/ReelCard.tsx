@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ReelEngagement } from './ReelEngagement';
+import { ManageReelButton } from './ManageReelButton';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import type { Reel } from '../data';
@@ -25,7 +26,7 @@ function ReelMedia({ reel }: { reel: Reel }) {
   return <View style={[styles.media, styles.illustration]}><Text style={styles.description}>Media unavailable. Refresh to retry.</Text></View>;
 }
 
-export function ReelCard({ reel }: { reel: Reel }) {
+export function ReelCard({ reel, editable = false }: { reel: Reel; editable?: boolean }) {
   const { savedIds, toggleSaved, followingHandles, toggleFollowing, pending, socialLoading } = useAppState();
   const saved = savedIds.includes(reel.id);
   const following = followingHandles.includes(reel.handle);
@@ -40,6 +41,7 @@ export function ReelCard({ reel }: { reel: Reel }) {
         </View>
         <Text style={styles.title}>{reel.title}</Text>
         <Text style={styles.description}>{reel.description}</Text>
+        {editable && <ManageReelButton id={reel.id} authorId={reel.authorId} />}
         {reel.mediaType === 'video' && <CreatorViews id={reel.id} authorId={reel.authorId} />}
         <View style={{ marginTop: 16 }}><ReelEngagement id={reel.id} share={reel.mediaType === 'video'} /></View>
         <View style={styles.footer}>

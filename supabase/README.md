@@ -1,7 +1,9 @@
 # Connect SocialX to Supabase
 
 The app connects accounts, profiles, posts, saves, follows and media uploads.
-All five migrations below must be applied. Creator payments are not implemented.
+All six migrations below must be applied. Creator payments are not implemented.
+
+For editing published reels, also run `migrations/202610140003_edit_posts.sql`. Owners can change title, caption, city and category. Deleting uses the existing owner-only delete policy and removes the associated media after the database confirms deletion. If media cleanup fails, keep the editor open and use Retry file cleanup; closing the app at that point can leave an unused file in Storage.
 
 ## 1. Create your project
 

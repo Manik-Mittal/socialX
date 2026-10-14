@@ -18,7 +18,7 @@ export default function SharedPostScreen() {
   const [retry, setRetry] = useState(0);
   const load = useCallback(() => {
     let active = true;
-    void getSharedPost(id, session!.user.id).then(value => { if (active) { setPost(value); cacheReel(value); setError(''); } }).catch(e => { if (active) setError(chatError(e)); });
+    void getSharedPost(id, session!.user.id).then(value => { if (active) { setPost(value); cacheReel(value); setError(''); } }).catch(e => { if (active) { setPost(null); setError(chatError(e)); } });
     return () => { active = false; };
   }, [id, session, cacheReel]);
   // Changing the retry key deliberately reruns the focus fetch.

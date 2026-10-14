@@ -31,6 +31,7 @@ function AppNavigation() {
           <Stack.Screen name="comments/[id]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="search" />
           <Stack.Screen name="user/[id]" />
+          <Stack.Screen name="edit-reel/[id]" />
         </Stack.Protected>
       </Stack>
       </View></View>
