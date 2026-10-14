@@ -45,7 +45,7 @@ function ReelPage({ reel, height, active }: { reel: VideoReel; height: number; a
       <View style={styles.pageContent}>
         <View style={styles.story}>
           <Text style={styles.category}>{reel.category.toUpperCase()} · {reel.city}</Text>
-          <Text style={styles.creator}>{reel.handle}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Open ${reel.creator}'s profile`} disabled={!reel.authorId} onPress={() => router.push({ pathname: '/user/[id]', params: { id: reel.authorId! } })}><Text style={styles.creator}>{reel.creator}</Text></Pressable>
           <Text style={styles.title}>{reel.title}</Text>
           <CreatorViews id={reel.id} authorId={reel.authorId} dark />
           {reel.description ? <Text style={styles.description}>{reel.description}</Text> : null}

@@ -29,6 +29,8 @@ function AppNavigation() {
           <Stack.Screen name="chat/[userId]" />
           <Stack.Screen name="post/[id]" />
           <Stack.Screen name="comments/[id]" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="search" />
+          <Stack.Screen name="user/[id]" />
         </Stack.Protected>
       </Stack>
       </View></View>

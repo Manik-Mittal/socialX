@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { ReelEngagement } from './ReelEngagement';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -30,7 +31,7 @@ export function ReelCard({ reel }: { reel: Reel }) {
   const following = followingHandles.includes(reel.handle);
   return (
     <View style={styles.card}>
-      <View style={styles.authorHeader}><View style={styles.creatorAvatar}><Text style={styles.creatorInitial}>{reel.creator[0]}</Text></View><View style={styles.creatorText}><Text style={styles.creator}>{reel.creator}</Text><Text style={styles.handle}>{reel.city} · {reel.mediaType === 'video' ? 'Reel' : 'Story'}</Text></View>{reel.handle !== '@you' ? <Pressable disabled={pending.length > 0 || socialLoading} onPress={() => toggleFollowing(reel.handle)} style={styles.followButton} accessibilityRole="button" accessibilityLabel={`${following ? 'Unfollow' : 'Follow'} ${reel.creator}`}><Text style={styles.followText}>{following ? 'Following' : '+ Follow'}</Text></Pressable> : null}</View>
+      <View style={styles.authorHeader}><Pressable style={{ flex: 1, flexDirection: 'row', alignItems: 'center', minHeight: 44 }} accessibilityRole="button" accessibilityLabel={`Open ${reel.creator}'s profile`} disabled={!reel.authorId} onPress={() => router.push({ pathname: '/user/[id]', params: { id: reel.authorId! } })}><View style={styles.creatorAvatar}><Text style={styles.creatorInitial}>{reel.creator[0]}</Text></View><View style={styles.creatorText}><Text style={styles.creator}>{reel.creator}</Text><Text style={styles.handle}>{reel.city} · {reel.mediaType === 'video' ? 'Reel' : 'Story'}</Text></View></Pressable>{reel.handle !== '@you' ? <Pressable disabled={pending.length > 0 || socialLoading} onPress={() => toggleFollowing(reel.handle)} style={styles.followButton} accessibilityRole="button" accessibilityLabel={`${following ? 'Unfollow' : 'Follow'} ${reel.creator}`}><Text style={styles.followText}>{following ? 'Following' : '+ Follow'}</Text></Pressable> : null}</View>
       <ReelMedia reel={reel} />
       <View style={styles.content}>
         <View style={styles.topline}>
