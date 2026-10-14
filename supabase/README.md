@@ -1,7 +1,7 @@
 # Connect SocialX to Supabase
 
 The app connects accounts, profiles, posts, saves, follows and media uploads.
-All three migrations below must be applied. Creator payments are not implemented.
+All five migrations below must be applied. Creator payments are not implemented.
 
 ## 1. Create your project
 
@@ -29,6 +29,15 @@ It creates the messages table and `chat_inbox` function. Only the sender and rec
 can read a message; inserts must use the signed-in sender. Shared videos reference posts,
 and deleting a post leaves an unavailable attachment in the conversation. No Realtime
 publication setup is required: this version refreshes active chats periodically.
+
+For likes and comments, run `migrations/202610140001_engagement.sql` once in a new query.
+This adds `post_likes`, `post_comments`, and the `post_engagement` counts function.
+Only the signed-in account can like/unlike or author a comment as itself; signed-in members can read them.
+Test persistence after refresh, duplicate likes, comment retry behavior, and cross-account write rejection.
+
+For creator view counts, run `migrations/202610140002_reel_views.sql` once.
+It adds private deduplicated view records and two functions: recording for the signed-in viewer,
+and counts restricted to the reel owner. No viewer identities are returned to creators.
 
 Profiles are readable by signed-in users. Only the owner can edit their name/bio.
 Client accounts cannot insert/delete profile rows or change account IDs.

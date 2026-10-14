@@ -10,6 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Reel } from '../../data';
 import { useAppState } from '../../state';
 import { colors } from '../../theme';
+import { ReelEngagement } from '../../components/ReelEngagement';
+import { CreatorViews, useReelView } from '../../components/ReelViews';
 
 type VideoReel = Reel & { mediaUri: string; mediaType: 'video' };
 const viewabilityConfig = { itemVisiblePercentThreshold: 70 };
@@ -17,6 +19,7 @@ const viewabilityConfig = { itemVisiblePercentThreshold: 70 };
 function ReelPage({ reel, height, active }: { reel: VideoReel; height: number; active: boolean }) {
   const { savedIds, toggleSaved, followingHandles, toggleFollowing, pending, socialLoading } = useAppState();
   const player = useVideoPlayer(reel.mediaUri, video => { video.loop = true; });
+  useReelView(player, reel.id, reel.authorId, active);
   const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
   const saved = savedIds.includes(reel.id);
   const [muted, setMuted] = useState(false);
@@ -43,11 +46,12 @@ function ReelPage({ reel, height, active }: { reel: VideoReel; height: number; a
           <Text style={styles.category}>{reel.category.toUpperCase()} · {reel.city}</Text>
           <Text style={styles.creator}>{reel.handle}</Text>
           <Text style={styles.title}>{reel.title}</Text>
+          <CreatorViews id={reel.id} authorId={reel.authorId} dark />
           {reel.description ? <Text style={styles.description}>{reel.description}</Text> : null}
           {reel.sponsored ? <Text style={styles.sponsored}>PAID PARTNERSHIP</Text> : null}
         </View>
         <View style={styles.actions}>
-          <Pressable onPress={() => router.push({ pathname: '/messages', params: { postId: reel.id } })} style={styles.action} accessibilityRole="button" accessibilityLabel="Share reel in a chat"><Ionicons name="paper-plane-outline" size={25} color={colors.white} /><Text style={styles.actionLabel}>Share</Text></Pressable>
+          <ReelEngagement id={reel.id} dark />
           <Pressable onPress={toggleMute} style={styles.action} accessibilityRole="button" accessibilityLabel={muted ? 'Unmute reel' : 'Mute reel'}><Ionicons name={muted ? 'volume-mute-outline' : 'volume-high-outline'} size={25} color={colors.white} /><Text style={styles.actionLabel}>{muted ? 'Sound off' : 'Sound on'}</Text></Pressable>
           <Pressable onPress={() => isPlaying ? player.pause() : player.play()} style={styles.action} accessibilityRole="button" accessibilityLabel={isPlaying ? 'Pause reel' : 'Play reel'}>
             <Ionicons name={isPlaying ? 'pause' : 'play'} size={25} color={colors.white} />
@@ -149,7 +153,7 @@ const styles = StyleSheet.create({
   title: { color: colors.white, fontSize: 25, fontWeight: '800', lineHeight: 30, marginTop: 8 },
   description: { color: '#F2F7FF', fontSize: 16, lineHeight: 23, marginTop: 6 },
   sponsored: { color: '#F8DB9A', fontSize: 13, fontWeight: '800', letterSpacing: 0.7, marginTop: 12 },
-  actions: { alignItems: 'center', gap: 20 },
+  actions: { alignItems: 'center', gap: 10 },
   action: { alignItems: 'center', minWidth: 46, gap: 4 },
   actionLabel: { color: colors.white, fontSize: 14, fontWeight: '700' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 34, paddingBottom: 24 },

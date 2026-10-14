@@ -12,7 +12,7 @@ npx expo start --web --clear
 
 Copy `.env.example` to `.env.local` and enter the project URL and publishable key.
 Never use a secret or service-role key in the app.
-Follow [the Supabase setup guide](supabase/README.md) and run the three SQL migrations in order.
+Follow [the Supabase setup guide](supabase/README.md) and run the five SQL migrations in order.
 Native users need a development build when introducing new native modules.
 
 ## Connected features
@@ -30,6 +30,15 @@ Native users need a development build when introducing new native modules.
 - Chats tab: search people by display name, send text and share reels with an optional message.
 - Conversations are persisted with participant-only read access and sender-only inserts.
 - Reel sharing stores a post reference, not a duplicate video. Tap a shared reel to watch it.
+- Like/unlike and comment counts on feed cards and the reel viewer, with chat sharing alongside them.
+- Comments saved with author names, newest-first pagination, and draft-preserving retries.
+
+Likes/comments require `202610140001_engagement.sql`. Counts load from the database on screen focus;
+pull to refresh comments to see new entries. One like per account/post is enforced by a primary key.
+Comments are visible to signed-in members, limited to 1,000 characters, and deduplicated on retries.
+No placeholder counts are used when requests fail. Comment replies, editing and deletion are not included.
+After migration, verify like/unlike persistence and comment visibility with two accounts, plus
+rejection of writes impersonating another user. Live authorization and persistence are not yet verified.
 
 Chat requires `202610130001_messages.sql`. Open chats poll for new messages every 5 seconds;
 the inbox refreshes every 15 seconds while focused and the app is active. There are no push
@@ -41,6 +50,21 @@ These features require `202610110001_social.sql` to be applied after the profile
 If setup or a request fails, the app displays an error and retry control rather than sample data.
 A Save label changes only after the database accepts the write. Uploads must succeed before publication.
 Private media links expire after an hour; account refresh, app foregrounding and a 45-minute refresh interval renew them.
+
+## Reel views
+
+Run `supabase/migrations/202610140002_reel_views.sql` once to enable tracking.
+Creators see unique view counts on their video cards (including Profile) and in the reel viewer.
+Tap the count or return to the screen to refresh it. Other accounts cannot read counts or raw viewer rows.
+The client records a view after three accumulated seconds of foreground, focused playback progress;
+paused/buffering time and seek jumps do not qualify. The database counts each signed-in viewer once
+per reel across devices, excluding the creator. Short videos need enough replay time to qualify.
+Tracking begins after setup; historical playback cannot be recovered. This is client-reported beta
+analytics, not fraud-resistant evidence for creator payouts.
+
+Verify with two accounts: B watches A's reel for three seconds, A refreshes the count, then B
+replays/reloads and the count stays unchanged. A's own plays must not increment it. Verify B cannot
+call the creator-count function for A or select viewer rows. Live database/device checks are pending.
 
 ## Camera effects
 
@@ -90,7 +114,7 @@ Live two-account and third-account authorization checks remain required after mi
 
 Live migration and two-account tests must pass before calling the feature verified.
 Video transcoding, server-side duration/content inspection, moderation, resumable large uploads,
-likes/comments, notifications, brand campaigns and payouts are not implemented.
+notifications, brand campaigns and payouts are not implemented.
 Uploaded codecs must be supported by the viewing device. Use MP4/H.264 for broad compatibility.
 This upload path is intended for a small controlled beta, not an unrestricted public launch.
 =======

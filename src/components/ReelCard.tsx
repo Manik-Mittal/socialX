@@ -1,20 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { ReelEngagement } from './ReelEngagement';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import type { Reel } from '../data';
 import { colors } from '../theme';
 import { useAppState } from '../state';
+import { CreatorViews, useReelView } from './ReelViews';
 
-function ReelVideo({ uri }: { uri: string }) {
+function ReelVideo({ uri, reel }: { uri: string; reel: Reel }) {
   const player = useVideoPlayer(uri);
+  useReelView(player, reel.id, reel.authorId);
   return <VideoView player={player} style={styles.media} nativeControls contentFit="cover" />;
 }
 
 function ReelMedia({ reel }: { reel: Reel }) {
   if (reel.mediaMissing) return <View style={[styles.media, styles.illustration]}><Text style={styles.description}>Media unavailable. Refresh to retry.</Text></View>;
   if (reel.mediaType === 'video' && reel.mediaUri) {
-    return <ReelVideo uri={reel.mediaUri} />;
+    return <ReelVideo uri={reel.mediaUri} reel={reel} />;
   }
   if (reel.mediaType === 'image' && reel.mediaUri) {
     return <Image source={{ uri: reel.mediaUri }} style={styles.media} resizeMode="cover" />;
@@ -37,11 +39,12 @@ export function ReelCard({ reel }: { reel: Reel }) {
         </View>
         <Text style={styles.title}>{reel.title}</Text>
         <Text style={styles.description}>{reel.description}</Text>
+        {reel.mediaType === 'video' && <CreatorViews id={reel.id} authorId={reel.authorId} />}
+        <View style={{ marginTop: 16 }}><ReelEngagement id={reel.id} share={reel.mediaType === 'video'} /></View>
         <View style={styles.footer}>
           <View style={styles.creatorText}>
             <Text style={styles.handle}>A discovery worth keeping.</Text>
           </View>
-          {reel.mediaType === 'video' && <Pressable onPress={() => router.push({ pathname: '/messages', params: { postId: reel.id } })} style={[styles.saveButton, { marginRight: 8 }]} accessibilityRole="button" accessibilityLabel="Share reel in a chat"><Ionicons name="paper-plane-outline" size={20} color={colors.accent} /><Text style={styles.saveText}>Share</Text></Pressable>}
           <Pressable disabled={pending.length > 0 || socialLoading} onPress={() => toggleSaved(reel.id)} style={[styles.saveButton, saved && styles.savedButton]} accessibilityRole="button" accessibilityLabel={saved ? 'Remove saved reel' : reel.action}>
             <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={18} color={colors.accent} />
             <Text style={styles.saveText}>{pending.includes(`save:${reel.id}`) ? 'Saving…' : saved ? 'Saved' : 'Save'}</Text>
