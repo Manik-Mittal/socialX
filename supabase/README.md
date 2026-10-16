@@ -1,7 +1,9 @@
 # Connect SocialX to Supabase
 
 The app connects accounts, profiles, posts, saves, follows and media uploads.
-All six migrations below must be applied. Creator payments are not implemented.
+All seven migrations below must be applied. Creator payments are not implemented.
+
+For chat emoji reactions, run `migrations/202610140004_message_reactions.sql` after the messages migration. Long-press text or shared reels to pick an emoji; selecting your existing emoji removes it. One reaction per participant per message is stored in Supabase. Only chat participants can read reactions, and each can change only their own. An open, foreground chat refreshes reactions every five seconds, including reactions on loaded older messages. After applying SQL, test adding/changing/removing from two accounts and verify a third account cannot access that conversation's reactions. Live database permissions have not been tested by the code checks.
 
 For editing published reels, also run `migrations/202610140003_edit_posts.sql`. Owners can change title, caption, city and category. Deleting uses the existing owner-only delete policy and removes the associated media after the database confirms deletion. If media cleanup fails, keep the editor open and use Retry file cleanup; closing the app at that point can leave an unused file in Storage.
 

@@ -7,6 +7,7 @@ import { useAuth } from '../../auth';
 import { chatError, getContact, getSharedPost, messagePage, sendMessage, type Message } from '../../backend/chat';
 import { ChatError, ChatHeader, chatStyles as s } from '../../components/ChatUI';
 import { colors } from '../../theme';
+import { ReactionBadges, ReactionPicker, useMessageReactions } from '../../components/MessageReactions';
 
 export default function ChatRoute() {
   const { userId, postId } = useLocalSearchParams<{ userId: string; postId?: string }>();
@@ -17,6 +18,8 @@ function Conversation({ peerId, initialPost }: { peerId: string; initialPost?: s
   const me = session!.user.id;
   const [name, setName] = useState('Conversation');
   const [messages, setMessages] = useState<Message[]>([]);
+  const [reactionMessage, setReactionMessage] = useState<number | null>(null);
+  const reactions = useMessageReactions(messages.map(message => message.id), me);
   const current = useRef<Message[]>([]);
   const receivedThrough = useRef(0);
   const [body, setBody] = useState('');
@@ -101,13 +104,14 @@ function Conversation({ peerId, initialPost }: { peerId: string; initialPost?: s
       <FlatList ref={list} inverted data={messages} keyExtractor={item => String(item.id)} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => {
           const mine = item.sender_id === me;
-          return <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
-            {item.kind === 'reel' && <Pressable accessibilityRole="button" accessibilityLabel={item.post_id ? 'Open shared reel' : 'Reel unavailable'} disabled={!item.post_id} onPress={() => router.push({ pathname: '/post/[id]', params: { id: item.post_id! } })} style={[styles.reel, { borderColor: mine ? '#FFFFFF66' : colors.border }]}>
+          return <Pressable onLongPress={() => setReactionMessage(item.id)} delayLongPress={400} accessibilityHint="Long press to react" accessibilityActions={[{ name: 'activate', label: 'React to message' }]} onAccessibilityAction={() => setReactionMessage(item.id)} style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
+            {item.kind === 'reel' && <Pressable accessibilityRole="button" accessibilityLabel={item.post_id ? 'Open shared reel. Long press to react' : 'Reel unavailable. Long press to react'} onLongPress={() => setReactionMessage(item.id)} delayLongPress={400} onPress={() => { if (item.post_id) router.push({ pathname: '/post/[id]', params: { id: item.post_id } }); }} style={[styles.reel, { borderColor: mine ? '#FFFFFF66' : colors.border }]}>
               <Ionicons name="play-circle-outline" size={30} color={mine ? colors.white : colors.accent} /><View style={{ flex: 1 }}><Text style={[s.text, mine && styles.white]}>{item.post_id ? 'Shared reel' : 'Reel unavailable'}</Text><Text style={[s.muted, mine && styles.white]}>{item.post_id ? 'Tap to watch' : 'This reel was deleted'}</Text></View>
             </Pressable>}
-            {!!item.body && <Text style={[s.text, mine && styles.white]} selectable>{item.body}</Text>}
+            {!!item.body && <Text style={[s.text, mine && styles.white]}>{item.body}</Text>}
             <Text style={[styles.time, mine && styles.white]}>{new Date(item.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</Text>
-          </View>;
+            <ReactionBadges rows={reactions.rows.filter(row => row.message_id === item.id)} me={me} open={() => setReactionMessage(item.id)} />
+          </Pressable>;
         }}
         ListEmptyComponent={<View style={s.empty}><Text style={s.muted}>{ready ? 'Say hello or share a reel.' : error ? 'Could not load this chat.' : 'Loading chat…'}</Text></View>}
         ListFooterComponent={hasMore ? <Pressable disabled={older} accessibilityRole="button" onPress={() => void load(true)} style={s.icon}><Text style={[s.link, { textAlign: 'center' }]}>{older ? 'Loading…' : 'Load earlier messages'}</Text></Pressable> : null} />
@@ -115,6 +119,7 @@ function Conversation({ peerId, initialPost }: { peerId: string; initialPost?: s
       {!!attachment && <View style={[s.notice, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}><Ionicons name="videocam-outline" size={24} color={colors.accent} /><Text numberOfLines={2} style={[s.text, { flex: 1 }]}>{attachmentTitle}</Text><Pressable disabled={sending} accessibilityRole="button" accessibilityLabel="Remove attached reel" onPress={() => setAttachment(undefined)} style={s.icon}><Ionicons name="close" size={24} color={colors.ink} /></Pressable></View>}
       <View style={styles.composer}><TextInput value={body} onChangeText={setBody} editable={!sending} multiline maxLength={2000} placeholder="Write a message…" accessibilityLabel="Message" style={[s.input, { flex: 1, maxHeight: 130 }]} /><Pressable accessibilityRole="button" accessibilityLabel="Send message" disabled={sending || !ready || (!body.trim() && !attachment) || (!!attachment && !attachmentReady)} onPress={() => void send()} style={[styles.send, (sending || !ready || (!body.trim() && !attachment) || (!!attachment && !attachmentReady)) && { opacity: 0.4 }]}><Ionicons name="send" size={22} color={colors.white} /><Text style={styles.white}>{sending ? 'Sending' : 'Send'}</Text></Pressable></View>
     </KeyboardAvoidingView>
+    <ReactionPicker visible={reactionMessage !== null} own={reactions.rows.find(row => row.message_id === reactionMessage && row.user_id === me)?.emoji} saving={reactions.saving} loaded={reactions.loaded} error={reactions.error} retry={() => void reactions.refresh()} close={() => setReactionMessage(null)} choose={emoji => { if (reactionMessage !== null) void reactions.react(reactionMessage, emoji).then(saved => { if (saved && live.current) setReactionMessage(null); }); }} />
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({

@@ -26,6 +26,12 @@
       "expo-router",
       "expo-status-bar",
       "expo-video",
+      "./plugins/withCameraKitAudio",
+      ["expo-camera", {
+        "cameraPermission": "Allow SocialX to record reels with camera effects.",
+        "microphonePermission": "Allow SocialX to record sound in your reels.",
+        "recordAudioAndroid": true
+      }],
       ["expo-image-picker", {
         "photosPermission": "Allow SocialX to access photos and videos you choose to share.",
         "cameraPermission": "Allow SocialX to record your reels.",
