@@ -3,6 +3,7 @@ import type { Category } from './theme';
 export type Reel = {
   id: string;
   authorId?: string;
+  username?: string | null;
   mimeType?: string;
   mediaMissing?: boolean;
   creator: string;

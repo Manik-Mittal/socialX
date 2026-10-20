@@ -1,3 +1,4 @@
+import { displayUsername } from '../../backend/usernames';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { FlatList, Image, Pressable, Text, View } from 'react-native';
@@ -52,7 +53,7 @@ function PublicProfile({ id }: { id: string }) {
       ListHeaderComponent={profile ? <View style={{ padding: 8, gap: 16, marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}><Text style={[s.link, { fontSize: 32 }]}>{profile.person.display_name[0]?.toUpperCase()}</Text></View>
           {[['Posts', profile.posts], ['Followers', profile.followers], ['Following', profile.following]].map(([label, count]) => <View key={label} style={{ flex: 1, alignItems: 'center' }}><Text style={[s.text, { fontWeight: '800', fontSize: 20 }]}>{count}</Text><Text style={[s.muted, { fontSize: 13 }]}>{label}</Text></View>)}</View>
-        <View><Text style={[s.text, { fontWeight: '800' }]}>{profile.person.display_name}</Text><Text style={s.muted}>@creator_{id.slice(0, 8)}</Text>{!!profile.person.bio && <Text style={[s.text, { marginTop: 8 }]}>{profile.person.bio}</Text>}</View>
+        <View><Text style={[s.text, { fontWeight: '800' }]}>{profile.person.display_name}</Text><Text style={s.muted}>{displayUsername(profile.person.username)}</Text>{!!profile.person.bio && <Text style={[s.text, { marginTop: 8 }]}>{profile.person.bio}</Text>}</View>
         <View style={{ flexDirection: 'row', gap: 10 }}>{id === me ? <Pressable accessibilityRole="button" style={[s.icon, { flex: 1, backgroundColor: colors.accentSoft, borderRadius: 12, alignItems: 'center' }]} onPress={() => router.push('/profile')}><Text style={s.link}>Edit your profile</Text></Pressable> : <><Pressable accessibilityRole="button" disabled={loading || following} onPress={() => void follow()} style={[s.icon, { flex: 1, backgroundColor: colors.accent, borderRadius: 12, alignItems: 'center', opacity: following ? 0.5 : 1 }]}><Text style={[s.link, { color: colors.white }]}>{following ? 'Saving…' : profile.isFollowing ? 'Following' : 'Follow'}</Text></Pressable><Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/chat/[userId]', params: { userId: id } })} style={[s.icon, { flex: 1, backgroundColor: colors.accentSoft, borderRadius: 12, alignItems: 'center' }]}><Text style={s.link}>Message</Text></Pressable></>}</View>
         <Text style={[s.link, { textAlign: 'center', paddingTop: 12 }]}>Posts & reels</Text>
       </View> : null}

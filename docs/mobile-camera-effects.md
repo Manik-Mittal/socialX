@@ -19,7 +19,7 @@ EXPO_PUBLIC_CAMERA_KIT_FACE_GROUP_ID=
 5. Configure the real `ios.bundleIdentifier` and `android.package` in app.json to match Snap, then configure the Expo/EAS project and signing. No identifiers, account ownership or signing credentials have been assumed here.
 6. Build a development app with `npx eas-cli@latest build --platform android --profile development` or the same command with `--platform ios`. EAS requires login; physical iPhone distribution requires appropriate Apple signing. Install it and run `npx expo start --dev-client`.
 
-Expo Go continues to show a standard-camera fallback. Lens recording requires the custom build. The web camera is separate and unchanged. No paid lens packs or service subscriptions have been purchased.
+Create opens the camera directly. Without configured native lenses, it opens the in-app Expo camera with front/back switching, rear torch, zoom, sound on/off, and preview/retake. Microphone denial allows silent recording. Camera denial offers settings and the phone camera fallback. Lens recording requires the custom build. The web camera implementation remains separate. No paid lens packs or service subscriptions have been purchased.
 
 ## Behavior and limits
 
@@ -32,6 +32,8 @@ Expo Go continues to show a standard-camera fallback. Lens recording requires th
 - Snap's React Native wrapper is experimental. Validate licensing, attribution, production access and current commercial terms in the project's Snap account before launch.
 
 ## Required device checks
+
+For the Expo camera fallback: open Create from Home; allow/deny permissions; flip cameras; adjust zoom; enable the rear torch; record with and without sound; stop manually and at the time/file-size limit; background during recording; preview/retake; accept and publish. Controls must remain above the phone navigation bar. The fallback caps recording at 59 seconds or 24 MiB, whichever comes first.
 
 On both platforms: deny/allow camera and microphone permissions; launch with missing/invalid tokens; load both groups; select a color look and a face lens; flip cameras; record with microphone audio; verify the saved video's effect and audio; retake; record to the time limit; background during capture; close/reopen the camera; publish and play a test reel from another account. Confirm failure paths leave the rest of SocialX usable.
 

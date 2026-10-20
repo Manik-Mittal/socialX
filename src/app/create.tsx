@@ -28,7 +28,7 @@ function MediaPreview({ asset }: { asset: ImagePicker.ImagePickerAsset | null })
 export default function CreateScreen() {
   const { addReel, profile } = useAppState();
   const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
-  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState('');
   const [title, setTitle] = useState('');

@@ -2,18 +2,18 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { AppState as NativeAppState, Pressable, Text, View } from 'react-native';
 import type { Reel } from './data';
 import { useAuth } from './auth';
-import { loadProfile, saveProfile } from './backend/profiles';
+import { loadProfile, saveProfile, type Profile } from './backend/profiles';
 import { feedPage, handleFor, loadSocial, publishPost, setFollowing, setSaved, type Person } from './backend/social';
 import { colors } from './theme';
 
 type AppState = {
   reels: Reel[]; feedIds: string[]; savedIds: string[]; followingHandles: string[];
   following: Person[]; followers: Person[];
-  profile: { name: string; bio: string }; profileLoading: boolean; profileError: string;
+  profile: Profile; profileLoading: boolean; profileError: string;
   socialLoading: boolean; socialError: string; pending: string[]; hasMore: boolean;
   retryProfile: () => void; refresh: () => void; loadMore: () => void;
   toggleSaved: (id: string) => void; toggleFollowing: (handle: string) => void;
-  updateProfile: (name: string, bio: string) => Promise<void>;
+  updateProfile: (name: string, bio: string, username: string) => Promise<void>;
   addReel: (reel: Reel) => Promise<void>;
   cacheReel: (reel: Reel) => void;
   removeCachedReel: (id: string) => void;
@@ -28,7 +28,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [following, setFollowingPeople] = useState<Person[]>([]);
   const [followers, setFollowers] = useState<Person[]>([]);
-  const [profile, setProfile] = useState({ name: session?.user.user_metadata?.display_name || 'You', bio: '' });
+  const [profile, setProfile] = useState<Profile>({ name: session?.user.user_metadata?.display_name || 'You', bio: '', username: null });
   const [profileLoading, setProfileLoading] = useState(!!userId);
   const [profileError, setProfileError] = useState('');
   const [socialLoading, setSocialLoading] = useState(!!userId);
@@ -106,17 +106,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     lock(`follow:${handle}`); setActionError('');
     try {
       await setFollowing(userId, target, !person);
-      if (alive.current) setFollowingPeople(current => person ? current.filter(item => item.id !== target) : [...current, { id: target, handle: handleFor(target), name: reel?.creator ?? handle }]);
+      if (alive.current) setFollowingPeople(current => person ? current.filter(item => item.id !== target) : [...current, { id: target, handle: handleFor(target), name: reel?.creator ?? 'Creator', username: reel?.username }]);
     } catch (error) { if (alive.current) setActionError(error instanceof Error ? error.message : 'Could not change your following list.'); }
     finally { unlock(`follow:${handle}`); }
   }
-  async function updateProfile(name: string, bio: string) {
+  async function updateProfile(name: string, bio: string, username: string) {
     if (!userId || profileLoading || profileError || locks.current.size) throw new Error('Please wait for your account to finish loading.');
     lock('profile');
     try {
-      const next = await saveProfile(userId, name, bio);
+      const next = await saveProfile(userId, name, bio, username);
       if (!alive.current) return;
-      setProfile(next); setReels(current => current.map(reel => reel.handle === '@you' ? { ...reel, creator: next.name } : reel));
+      setProfile(next); setReels(current => current.map(reel => reel.handle === '@you' ? { ...reel, creator: next.name, username: next.username } : reel));
     } finally { unlock('profile'); }
   }
   async function addReel(reel: Reel) {

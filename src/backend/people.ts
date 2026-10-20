@@ -1,18 +1,17 @@
 import { client, hydrate } from './social';
 import { validId } from './chat';
-export type PublicPerson = { id: string; display_name: string; bio: string };
+export type PublicPerson = { id: string; display_name: string; bio: string; username: string | null };
 export async function searchPeople(term: string, offset = 0): Promise<PublicPerson[]> {
   const text = term.trim();
   if (text.length < 2) return [];
-  const literal = text.replace(/[\\%_]/g, '\\$&');
-  const { data, error } = await client().from('profiles').select('id,display_name,bio').ilike('display_name', `%${literal}%`).order('display_name').order('id').range(offset, offset + 29);
+  const { data, error } = await client().rpc('search_people', { query_text: text, page_offset: offset });
   if (error) throw error;
   return data;
 }
 export async function publicProfile(id: string, viewer: string) {
   if (!validId(id)) throw new Error('Invalid profile link.');
   const results = await Promise.all([
-    client().from('profiles').select('id,display_name,bio').eq('id', id).maybeSingle(),
+    client().from('profiles').select('id,display_name,bio,username').eq('id', id).maybeSingle(),
     client().from('posts').select('id', { count: 'exact', head: true }).eq('author_id', id),
     client().from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', id),
     client().from('follows').select('following_id', { count: 'exact', head: true }).eq('follower_id', id),

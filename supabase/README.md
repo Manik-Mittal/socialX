@@ -1,7 +1,15 @@
 # Connect SocialX to Supabase
 
 The app connects accounts, profiles, posts, saves, follows and media uploads.
-All seven migrations below must be applied. Creator payments are not implemented.
+All eight migrations below must be applied. Creator payments are not implemented.
+
+## Chosen usernames
+
+Run `migrations/202610170001_usernames.sql` once and use the updated app. Signup now requires a username; older app versions without that field cannot create new accounts after this migration. Existing accounts retain their UUIDs and data, with a null username until they choose one in Profile → Edit profile. No names are automatically claimed for them.
+
+Usernames are 3–24 lowercase ASCII letters, numbers or underscores. Input is normalized to lowercase; a database format check and unique constraint prevent duplicate claims, including simultaneous requests. Availability feedback is advisory until signup/profile save succeeds. Display names may repeat. The public availability RPC exposes only a boolean; profile search remains authenticated and obeys RLS. Usernames can be changed; previous usernames become available again, while relationships continue using account IDs.
+
+After applying SQL, verify two accounts cannot save the same username, test mixed-case input and invalid formats, and search by both name and @username. Live database tests remain pending until this migration is applied.
 
 For chat emoji reactions, run `migrations/202610140004_message_reactions.sql` after the messages migration. Long-press text or shared reels to pick an emoji; selecting your existing emoji removes it. One reaction per participant per message is stored in Supabase. Only chat participants can read reactions, and each can change only their own. An open, foreground chat refreshes reactions every five seconds, including reactions on loaded older messages. After applying SQL, test adding/changing/removing from two accounts and verify a third account cannot access that conversation's reactions. Live database permissions have not been tested by the code checks.
 

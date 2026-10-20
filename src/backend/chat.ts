@@ -1,7 +1,7 @@
 import { client, hydrate } from './social';
 
 export type Message = { id: number; sender_id: string; recipient_id: string; body: string; kind: 'text' | 'reel'; post_id: string | null; created_at: string };
-export type Contact = { id: string; display_name: string };
+export type Contact = { id: string; display_name: string; username: string | null };
 export type Conversation = { peer_id: string; display_name: string; body: string; kind: 'text' | 'reel'; created_at: string; message_id: number };
 export const validId = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 export function chatError(error: unknown): string {
@@ -15,16 +15,14 @@ export async function inbox(offset = 0): Promise<Conversation[]> {
   return data;
 }
 export async function findContacts(term: string, userId: string): Promise<Contact[]> {
-  const literal = term.trim().replace(/[\\%_]/g, '\\$&');
-  if (literal.length < 2) return [];
-  const { data, error } = await client().from('profiles').select('id,display_name').neq('id', userId)
-    .ilike('display_name', `%${literal}%`).order('display_name').order('id').limit(30);
+  if (term.trim().length < 2) return [];
+  const { data, error } = await client().rpc('search_people', { query_text: term.trim(), exclude_id: userId });
   if (error) throw error;
   return data;
 }
 export async function getContact(id: string): Promise<Contact> {
   if (!validId(id)) throw new Error('Invalid person. Return to Messages and select someone.');
-  const { data, error } = await client().from('profiles').select('id,display_name').eq('id', id).single();
+  const { data, error } = await client().from('profiles').select('id,display_name,username').eq('id', id).single();
   if (error) throw error;
   return data;
 }

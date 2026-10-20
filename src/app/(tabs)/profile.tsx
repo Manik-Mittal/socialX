@@ -8,11 +8,13 @@ import { ReelCard } from '../../components/ReelCard';
 import { useAppState } from '../../state';
 import { colors } from '../../theme';
 import { useAuth } from '../../auth';
+import { UsernameField } from '../../components/UsernameField';
+import { displayUsername } from '../../backend/usernames';
 
 type Section = 'posts' | 'followers' | 'following';
 
 export default function ProfileScreen() {
-  const { session, signOut } = useAuth();
+  const { signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   const [authError, setAuthError] = useState('');
   const { reels, following, followers, socialLoading, socialError, refresh, pending, profile, profileLoading, profileError, retryProfile, toggleFollowing, updateProfile } = useAppState();
@@ -22,6 +24,7 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(profile.name);
   const [draftBio, setDraftBio] = useState(profile.bio);
+  const [draftUsername, setDraftUsername] = useState(profile.username ?? '');
   const myPosts = reels.filter(reel => reel.handle === '@you');
 
   function beginEdit() {
@@ -29,6 +32,7 @@ export default function ProfileScreen() {
     setSaveError('');
     setDraftName(profile.name);
     setDraftBio(profile.bio);
+    setDraftUsername(profile.username ?? '');
     setEditing(true);
   }
 
@@ -37,7 +41,7 @@ export default function ProfileScreen() {
     setSavingProfile(true);
     setSaveError('');
     try {
-      await updateProfile(draftName, draftBio);
+      await updateProfile(draftName, draftBio, draftUsername);
       setEditing(false);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Could not save your profile.');
@@ -58,7 +62,7 @@ export default function ProfileScreen() {
         <View style={styles.hero}><GradientFill tone="soft" radius={28} />
           <View style={styles.avatar}><GradientFill radius={30} /><Text style={styles.avatarText}>{profile.name.charAt(0).toUpperCase()}</Text></View>
           <Text style={styles.name}>{profile.name}</Text>
-          <Text style={styles.handle}>{session ? `@creator_${session.user.id.slice(0, 8)}` : ''}</Text>
+          <Text style={styles.handle}>{profile.username ? displayUsername(profile.username) : 'Choose your username in Edit profile'}</Text>
           <Text style={styles.bio}>{profile.bio || 'Add a bio to tell people about yourself.'}</Text>
           <Pressable onPress={beginEdit} disabled={profileLoading || !!profileError || savingProfile} style={styles.editButton} accessibilityRole="button" accessibilityLabel="Edit profile"><Ionicons name="create-outline" size={17} color={colors.accent} /><Text style={styles.editText}>{profileLoading ? 'Loading profile…' : 'Edit profile'}</Text></Pressable>
           {profileError ? <><Text accessibilityRole="alert" style={styles.note}>{profileError}</Text><Pressable onPress={retryProfile} accessibilityRole="button" style={styles.editButton}><Text style={styles.editText}>Retry loading profile</Text></Pressable></> : null}
@@ -68,6 +72,7 @@ export default function ProfileScreen() {
         {editing ? <View style={styles.editCard}>
           <Text style={styles.fieldLabel}>NAME</Text>
           <TextInput value={draftName} onChangeText={setDraftName} style={styles.input} maxLength={40} accessibilityLabel="Profile name" />
+          <UsernameField value={draftUsername} onChange={setDraftUsername} disabled={savingProfile} />
           <Text style={styles.fieldLabel}>BIO</Text>
           <TextInput value={draftBio} onChangeText={setDraftBio} style={[styles.input, styles.bioInput]} multiline maxLength={160} accessibilityLabel="Profile bio" />
           <View style={styles.editActions}>
@@ -89,8 +94,8 @@ export default function ProfileScreen() {
         </View>
 
         {section === 'posts' ? myPosts.length ? myPosts.map(reel => <ReelCard key={reel.id} reel={reel} editable />) : <View style={styles.empty}><Ionicons name="grid-outline" size={34} color={colors.accent} /><Text style={styles.emptyTitle}>No posts yet</Text><Text style={styles.emptyText}>Your reels and photo posts will appear here.</Text><Pressable onPress={() => router.push('/create')} style={styles.emptyAction} accessibilityRole="button"><Text style={styles.emptyActionText}>Create your first post</Text></Pressable></View> : null}
-        {section === 'followers' ? followers.length ? followers.map(person => <View key={person.id} style={styles.personRow}><View style={styles.personAvatar}><Text style={styles.personInitial}>{person.name.charAt(0)}</Text></View><View style={styles.personDetails}><Text style={styles.personName}>{person.name}</Text><Text numberOfLines={1} style={styles.personHandle}>{person.handle}</Text></View></View>) : <View style={styles.empty}><Ionicons name="people-outline" size={34} color={colors.accent} /><Text style={styles.emptyTitle}>No followers yet</Text><Text style={styles.emptyText}>When people follow you, they will appear here.</Text></View> : null}
-        {section === 'following' ? following.length ? following.map(person => <View key={person.handle} style={styles.personRow}><View style={styles.personAvatar}><Text style={styles.personInitial}>{person.name.charAt(0).toUpperCase()}</Text></View><View style={styles.personDetails}><Text style={styles.personName}>{person.name}</Text><Text numberOfLines={1} style={styles.personHandle}>{person.handle}</Text></View><Pressable disabled={pending.length > 0 || socialLoading} onPress={() => toggleFollowing(person.handle)} style={styles.unfollowButton} accessibilityRole="button" accessibilityLabel={`Unfollow ${person.name}`}><Text style={styles.unfollowText}>Following</Text></Pressable></View>) : <View style={styles.empty}><Ionicons name="person-add-outline" size={34} color={colors.accent} /><Text style={styles.emptyTitle}>Not following anyone yet</Text><Text style={styles.emptyText}>Follow creators in Discover to see them here.</Text><Pressable onPress={() => router.navigate('/')} style={styles.emptyAction} accessibilityRole="button"><Text style={styles.emptyActionText}>Explore creators</Text></Pressable></View> : null}
+        {section === 'followers' ? followers.length ? followers.map(person => <View key={person.id} style={styles.personRow}><View style={styles.personAvatar}><Text style={styles.personInitial}>{person.name.charAt(0)}</Text></View><View style={styles.personDetails}><Text style={styles.personName}>{person.name}</Text><Text numberOfLines={1} style={styles.personHandle}>{displayUsername(person.username)}</Text></View></View>) : <View style={styles.empty}><Ionicons name="people-outline" size={34} color={colors.accent} /><Text style={styles.emptyTitle}>No followers yet</Text><Text style={styles.emptyText}>When people follow you, they will appear here.</Text></View> : null}
+        {section === 'following' ? following.length ? following.map(person => <View key={person.handle} style={styles.personRow}><View style={styles.personAvatar}><Text style={styles.personInitial}>{person.name.charAt(0).toUpperCase()}</Text></View><View style={styles.personDetails}><Text style={styles.personName}>{person.name}</Text><Text numberOfLines={1} style={styles.personHandle}>{displayUsername(person.username)}</Text></View><Pressable disabled={pending.length > 0 || socialLoading} onPress={() => toggleFollowing(person.handle)} style={styles.unfollowButton} accessibilityRole="button" accessibilityLabel={`Unfollow ${person.name}`}><Text style={styles.unfollowText}>Following</Text></Pressable></View>) : <View style={styles.empty}><Ionicons name="person-add-outline" size={34} color={colors.accent} /><Text style={styles.emptyTitle}>Not following anyone yet</Text><Text style={styles.emptyText}>Follow creators in Discover to see them here.</Text><Pressable onPress={() => router.navigate('/')} style={styles.emptyAction} accessibilityRole="button"><Text style={styles.emptyActionText}>Explore creators</Text></Pressable></View> : null}
         <Pressable onPress={leave} disabled={signingOut} style={styles.editButton} accessibilityRole="button"><Ionicons name="log-out-outline" size={18} color={colors.accent} /><Text style={styles.editText}>{signingOut ? 'Logging out…' : 'Log out'}</Text></Pressable>
         {authError ? <Text accessibilityRole="alert" style={styles.note}>{authError}</Text> : null}
 <Pressable onPress={refresh} disabled={socialLoading || pending.length > 0} style={styles.editButton} accessibilityRole="button"><Text style={styles.editText}>Refresh account</Text></Pressable>

@@ -6,9 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../auth';
 import { colors } from '../theme';
 import { GradientFill } from './GradientFill';
+import { UsernameField } from './UsernameField';
+import { normalizeUsername, usernameAvailable, usernameHint, validUsername } from '../backend/usernames';
 
 export function AuthScreen({ signup = false }: { signup?: boolean }) {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -22,6 +25,7 @@ export function AuthScreen({ signup = false }: { signup?: boolean }) {
     if (inFlight.current || !supabase) return;
     setError('');
     if (signup && !name.trim()) return setError('Please enter your name.');
+    if (signup && !validUsername(normalizeUsername(username))) return setError(usernameHint);
     const address = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return setError('Enter a valid email address.');
     if (!password || (signup && password.length < 8)) return setError(signup ? 'Choose a password with at least 8 characters.' : 'Enter your password.');
@@ -30,9 +34,13 @@ export function AuthScreen({ signup = false }: { signup?: boolean }) {
     setBusy(true);
     try {
       if (signup) {
+        if (!await usernameAvailable(username)) throw new Error('Username already taken. Choose another.');
         const redirect = process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL || (Platform.OS === 'web' ? `${window.location.origin}/login` : undefined);
-        const { data, error: authError } = await supabase.auth.signUp({ email: address, password, options: { data: { display_name: name.trim() }, ...(redirect ? { emailRedirectTo: redirect } : {}) } });
-        if (authError) throw authError;
+        const { data, error: authError } = await supabase.auth.signUp({ email: address, password, options: { data: { display_name: name.trim(), username: normalizeUsername(username) }, ...(redirect ? { emailRedirectTo: redirect } : {}) } });
+        if (authError) {
+          if (!await usernameAvailable(username)) throw new Error('Username already taken. Choose another.');
+          throw authError;
+        }
         if (!data.session) { setSent(true); setPassword(''); setConfirm(''); }
       } else {
         const { error: authError } = await supabase.auth.signInWithPassword({ email: address, password });
@@ -50,6 +58,7 @@ export function AuthScreen({ signup = false }: { signup?: boolean }) {
     {!supabase ? <View style={styles.notice}><Ionicons name="information-circle-outline" size={20} color={colors.accent} /><Text style={styles.noticeText}>Accounts are not available in this preview yet. Please finish connecting Supabase to continue.</Text></View> : null}
     {sent ? <View style={styles.confirmation}><Ionicons name="mail-open-outline" size={35} color={colors.accent} /><Text style={styles.confirmTitle}>Check your inbox</Text><Text style={styles.heroBody}>If this address is eligible, a confirmation link has been sent to {email.trim()}. Confirm your email, then log in.</Text><Pressable style={styles.primary} onPress={() => router.replace('/login')} accessibilityRole="button"><GradientFill /><Text style={styles.primaryText}>Back to login</Text></Pressable></View> : <>
       {signup ? <><Text style={styles.label}>Your name</Text><TextInput style={styles.input} value={name} onChangeText={setName} placeholder="How should we call you?" placeholderTextColor={colors.muted} maxLength={40} autoComplete="name" editable={!busy} accessibilityLabel="Your name" /></> : null}
+      {signup && <UsernameField value={username} onChange={setUsername} disabled={busy} />}
       <Text style={styles.label}>Email address</Text><TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" editable={!busy} accessibilityLabel="Email address" />
       <Text style={styles.label}>Password</Text><View style={styles.passwordRow}><TextInput style={styles.passwordInput} value={password} onChangeText={setPassword} placeholder={signup ? 'At least 8 characters' : 'Enter your password'} placeholderTextColor={colors.muted} secureTextEntry={!visible} autoCapitalize="none" autoCorrect={false} autoComplete={signup ? 'new-password' : 'current-password'} editable={!busy} accessibilityLabel="Password" onSubmitEditing={signup ? undefined : submit} /><Pressable onPress={() => setVisible(!visible)} style={styles.eye} accessibilityRole="button" accessibilityLabel={visible ? 'Hide password' : 'Show password'}><Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={21} color={colors.muted} /></Pressable></View>
       {signup ? <><Text style={styles.label}>Confirm password</Text><TextInput style={styles.input} value={confirm} onChangeText={setConfirm} placeholder="Enter your password again" placeholderTextColor={colors.muted} secureTextEntry={!visible} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" editable={!busy} accessibilityLabel="Confirm password" onSubmitEditing={submit} /></> : null}

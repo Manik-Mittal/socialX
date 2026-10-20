@@ -1,3 +1,4 @@
+import { displayUsername } from '../../backend/usernames';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -58,9 +59,9 @@ export default function MessagesScreen() {
   return <SafeAreaView style={s.screen} edges={['top']}>
     <ChatHeader title={postId ? 'Share a reel' : 'Messages'} />
     {postId && <View style={s.notice}><Text style={s.text}>Choose someone, then tap Send in the chat.</Text><Pressable accessibilityRole="button" onPress={() => router.setParams({ postId: undefined })} style={s.icon}><Text style={s.link}>Cancel sharing</Text></Pressable></View>}
-    <View style={{ padding: 16, gap: 8 }}><TextInput value={query} onChangeText={text => { setQuery(text); setContacts([]); setSearching(text.trim().length >= 2); }} placeholder="Find someone by name" accessibilityLabel="Search people to message" style={s.input} maxLength={40} /><Text style={s.muted}>Enter at least 2 letters to start a new chat.</Text></View>
+    <View style={{ padding: 16, gap: 8 }}><TextInput value={query} onChangeText={text => { setQuery(text); setContacts([]); setSearching(text.trim().length >= 2); }} placeholder="Name or @username" accessibilityLabel="Search people to message" style={s.input} maxLength={40} /><Text style={s.muted}>Enter at least 2 letters to start a new chat.</Text></View>
     <ChatError error={error} retry={() => void load()} />
-    {isSearch ? <FlatList data={contacts} keyboardShouldPersistTaps="handled" keyExtractor={item => item.id} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => open(item.id)} style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: colors.border }}><Text style={s.text}>{item.display_name}</Text><Text style={s.muted}>@creator_{item.id.slice(0, 8)}</Text></Pressable>}
+    {isSearch ? <FlatList data={contacts} keyboardShouldPersistTaps="handled" keyExtractor={item => item.id} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => open(item.id)} style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: colors.border }}><Text style={s.text}>{item.display_name}</Text><Text style={s.muted}>{displayUsername(item.username)}</Text></Pressable>}
       ListEmptyComponent={<View style={s.empty}><Text style={s.muted}>{searching ? 'Searching…' : searchError || 'No matching people. Try another name.'}</Text></View>}
       ListFooterComponent={contacts.length === 30 ? <Text style={[s.muted, { padding: 16 }]}>Showing 30 matches. Narrow your search to find someone.</Text> : null} />
       : <FlatList data={items} keyExtractor={item => item.peer_id} refreshing={loading} onRefresh={() => void load()} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => open(item.peer_id)} style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>

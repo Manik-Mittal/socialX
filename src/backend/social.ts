@@ -2,13 +2,14 @@ import { supabase } from '../auth';
 import type { Reel } from '../data';
 import { readMedia } from './media';
 
-export type Person = { id: string; name: string; handle: string };
+export type Person = { id: string; name: string; handle: string; username?: string | null };
 type Post = { id: string; author_id: string; title: string; description: string; city: string; category: Reel['category']; media_path: string; media_type: 'image' | 'video'; created_at: string };
 export function client() {
   if (!supabase) throw new Error('Connect Supabase before using your account.');
   return supabase;
 }
-export function handleFor(id: string) { return `@creator_${id.replaceAll('-', '')}`; }
+// Stable internal relationship key, independent of the editable public username.
+export function handleFor(id: string) { return `account:${id}`; }
 function failure(error: { code?: string; message: string }) {
   if (['PGRST205', '42P01'].includes(error.code ?? '')) return new Error('Social features need the new database setup. Run the social migration in Supabase, then retry.');
   return new Error(error.message);
@@ -27,12 +28,13 @@ async function rows<T>(table: string, order: string, match: Record<string, strin
 export async function hydrate(posts: Post[], userId: string): Promise<Reel[]> {
   if (!posts.length) return [];
   const authorIds = [...new Set(posts.map(post => post.author_id))];
-  const { data: authors, error: authorError } = await client().from('profiles').select('id,display_name').in('id', authorIds);
+  const { data: authors, error: authorError } = await client().from('profiles').select('id,display_name,username').in('id', authorIds);
   if (authorError) throw failure(authorError);
   const { data: media, error } = await client().storage.from('socialx-media').createSignedUrls(posts.map(post => post.media_path), 3600);
   if (error) throw failure(error);
   return posts.map((post, index) => ({ id: post.id, authorId: post.author_id,
     creator: authors.find(author => author.id === post.author_id)?.display_name ?? 'Creator',
+    username: authors.find(author => author.id === post.author_id)?.username ?? null,
     handle: post.author_id === userId ? '@you' : handleFor(post.author_id),
     title: post.title, description: post.description, city: post.city, category: post.category,
     mediaUri: media[index]?.signedUrl ?? undefined, mediaType: post.media_type,
@@ -60,9 +62,9 @@ export async function loadSocial(userId: string) {
   const peopleIds = [...new Set([...follows.map(row => row.following_id), ...followers.map(row => row.follower_id)])];
   const people = new Map<string, Person>();
   for (let i = 0; i < peopleIds.length; i += 100) {
-    const { data, error } = await client().from('profiles').select('id,display_name').in('id', peopleIds.slice(i, i + 100));
+    const { data, error } = await client().from('profiles').select('id,display_name,username').in('id', peopleIds.slice(i, i + 100));
     if (error) throw failure(error);
-    data.forEach(person => people.set(person.id, { id: person.id, name: person.display_name, handle: handleFor(person.id) }));
+    data.forEach(person => people.set(person.id, { id: person.id, name: person.display_name, username: person.username, handle: handleFor(person.id) }));
   }
   const extras: Reel[] = [];
   const unique = [...new Map([...own, ...savedPosts].map(post => [post.id, post])).values()];
