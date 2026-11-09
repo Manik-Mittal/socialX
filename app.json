@@ -20,6 +20,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "output": "single",
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
@@ -41,7 +42,8 @@
           "cameraPermission": "Allow SocialX to record your reels.",
           "microphonePermission": "Allow SocialX to record sound in your reels."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

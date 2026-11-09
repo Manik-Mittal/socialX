@@ -63,12 +63,12 @@ export default function MessagesScreen() {
     <ChatError error={error} retry={() => void load()} />
     {isSearch ? <FlatList data={contacts} keyboardShouldPersistTaps="handled" keyExtractor={item => item.id} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => open(item.id)} style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: colors.border }}><Text style={s.text}>{item.display_name}</Text><Text style={s.muted}>{displayUsername(item.username)}</Text></Pressable>}
       ListEmptyComponent={<View style={s.empty}><Text style={s.muted}>{searching ? 'Searching…' : searchError || 'No matching people. Try another name.'}</Text></View>}
-      ListFooterComponent={contacts.length === 30 ? <Text style={[s.muted, { padding: 16 }]}>Showing 30 matches. Narrow your search to find someone.</Text> : null} />
+      ListFooterComponent={contacts.length === 30 ? <Text style={[s.muted, { padding: 16 }]}>Showing 30 matches. Narrow your search to find someone.</Text> : undefined} />
       : <FlatList data={items} keyExtractor={item => item.peer_id} refreshing={loading} onRefresh={() => void load()} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => open(item.peer_id)} style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}><Text style={s.link}>{item.display_name.slice(0, 1).toUpperCase()}</Text></View>
         <View style={{ flex: 1 }}><Text style={[s.text, { fontWeight: '700' }]}>{item.display_name}</Text><Text numberOfLines={1} style={s.muted}>{item.kind === 'reel' ? 'Shared a reel' : item.body}</Text></View><Ionicons name="chevron-forward" size={20} color={colors.muted} />
       </Pressable>}
       ListEmptyComponent={<View style={s.empty}><Ionicons name="chatbubbles-outline" size={48} color={colors.accent} /><Text style={s.text}>{loading ? 'Loading conversations…' : error ? 'Chats unavailable' : 'Start a conversation'}</Text><Text style={s.muted}>Find a friend above to send a message or a reel.</Text></View>}
-      ListFooterComponent={hasMore ? <Pressable accessibilityRole="button" style={s.icon} onPress={() => void load(items.length)}><Text style={[s.link, { textAlign: 'center' }]}>Load more conversations</Text></Pressable> : null} />}
+      ListFooterComponent={hasMore ? <Pressable accessibilityRole="button" style={s.icon} onPress={() => void load(items.length)}><Text style={[s.link, { textAlign: 'center' }]}>Load more conversations</Text></Pressable> : undefined} />}
   </SafeAreaView>;
 }
