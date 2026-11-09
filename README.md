@@ -71,10 +71,9 @@ call the creator-count function for A or select viewer rows. Live database/devic
 Create → Record reel opens the web camera studio. Color filters and sparkle/heart/vignette
 layers are composited into the video. Requires HTTPS or localhost and browser support
 for MediaRecorder and canvas capture. Unsupported color filters are disabled.
-The native app includes an experimental Camera Kit integration for color and face lenses.
-It requires client tokens, published lens groups and a development build; device recording
-has not yet been verified. See [mobile camera setup](docs/mobile-camera-effects.md).
-Without setup, the standard phone camera remains available. Recordings become persistent
+The native app uses a local camera module for color filters in custom builds; device recording
+has not yet been verified. Expo Go uses the unfiltered camera. See [mobile camera setup](docs/mobile-camera-effects.md).
+Recordings become persistent
 only after Post reel succeeds.
 
 ## Verification

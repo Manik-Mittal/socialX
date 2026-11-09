@@ -1,40 +1,11 @@
-# Mobile camera effects — integration pending device validation
+# Mobile camera effects
 
-SocialX uses `@snap/camera-kit-react-native` 0.6.0 for native lenses and processed video capture. This is an experimental integration: Snap describes its React Native wrapper as an example, not officially supported for production. Compilation against Expo 57 / React Native 0.86 and camera recording have not yet been verified on devices. Do not release it until the checks below pass.
+SocialX uses its local `socialx-camera` Expo module for native color filters. The filters are defined in `src/camera/filters.ts` and can be adjusted before recording. This module requires a new development or production build; Expo Go uses the `expo-camera` fallback without color filters. The web camera implementation is separate.
 
-## Activate lenses
-
-1. Follow [Snap's project setup guide](https://developers.snap.com/camera-kit/getting-started/setting-up-accounts). The project owner must select their organization and enable Camera Kit for SocialX.
-2. Obtain the **iOS and Android client API tokens** from the project overview. These are client credentials, not server secrets. Register the actual app identifiers in Snap; do not use a web token for mobile.
-3. Publish or assign lenses to two groups: one for color looks and one for face effects. The app lists real group contents; it does not include a licensed catalog of Snapchat's lenses. Sample lenses can be used to test the connection. Staging tokens can add a watermark.
-4. Set these values in `.env.local` and in the EAS build environment:
-
-```dotenv
-EXPO_PUBLIC_CAMERA_KIT_IOS_TOKEN=
-EXPO_PUBLIC_CAMERA_KIT_ANDROID_TOKEN=
-EXPO_PUBLIC_CAMERA_KIT_COLOR_GROUP_ID=
-EXPO_PUBLIC_CAMERA_KIT_FACE_GROUP_ID=
-```
-
-5. Configure the real `ios.bundleIdentifier` and `android.package` in app.json to match Snap, then configure the Expo/EAS project and signing. No identifiers, account ownership or signing credentials have been assumed here.
-6. Build a development app with `npx eas-cli@latest build --platform android --profile development` or the same command with `--platform ios`. EAS requires login; physical iPhone distribution requires appropriate Apple signing. Install it and run `npx expo start --dev-client`.
-
-Create opens the camera directly. Without configured native lenses, it opens the in-app Expo camera with front/back switching, rear torch, zoom, sound on/off, and preview/retake. Microphone denial allows silent recording. Camera denial offers settings and the phone camera fallback. Lens recording requires the custom build. The web camera implementation remains separate. No paid lens packs or service subscriptions have been purchased.
-
-## Behavior and limits
-
-- Circular Colors / Faces selectors, Original, camera flip, preview and use/retake.
-- One lens at a time. To combine a color look with a face mask, author a combined lens in Lens Studio.
-- Select the lens before recording; switching during recording is disabled.
-- Recording stops at approximately 59 seconds to leave room for encoder finalization. Preview validates actual duration before accepting it; the existing 25 MB upload limit still applies.
-- Backgrounding stops an active recording. Leaving the screen closes the native session. Temporary unused captures remain in the app's cache until normal system cleanup.
-- `plugins/withCameraKitAudio.js` enables iOS microphone input in the wrapper during prebuild, which otherwise has audio disabled. It checks the installed wrapper version and is idempotent. This native change still requires an iPhone recording test.
-- Snap's React Native wrapper is experimental. Validate licensing, attribution, production access and current commercial terms in the project's Snap account before launch.
+The native camera supports front/back switching, rear torch, zoom, sound on/off, and preview/retake. Microphone denial allows silent recording. Camera denial offers settings and the phone camera fallback. Recordings become persistent only after a reel is posted.
 
 ## Required device checks
 
-For the Expo camera fallback: open Create from Home; allow/deny permissions; flip cameras; adjust zoom; enable the rear torch; record with and without sound; stop manually and at the time/file-size limit; background during recording; preview/retake; accept and publish. Controls must remain above the phone navigation bar. The fallback caps recording at 59 seconds or 24 MiB, whichever comes first.
+On both platforms: allow and deny camera and microphone permissions; switch cameras; adjust zoom; record with and without sound; stop manually and at the time limit; background during recording; preview and retake; publish and play a test reel from another account. In a custom build, verify that each color filter appears in both the preview and saved video. In Expo Go, verify that the unfiltered fallback records successfully.
 
-On both platforms: deny/allow camera and microphone permissions; launch with missing/invalid tokens; load both groups; select a color look and a face lens; flip cameras; record with microphone audio; verify the saved video's effect and audio; retake; record to the time limit; background during capture; close/reopen the camera; publish and play a test reel from another account. Confirm failure paths leave the rest of SocialX usable.
-
-No Camera Kit project, tokens, live lenses or device build were available during implementation. TypeScript/lint checks do not establish native compatibility or successful recording.
+The fallback caps recordings at 59 seconds or 24 MiB. Native module compilation and filtered recording still require device validation; lint and TypeScript checks do not establish native compatibility.
