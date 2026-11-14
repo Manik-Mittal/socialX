@@ -16,4 +16,5 @@ dependencies {
   implementation 'androidx.camera.media3:media3-effect:1.0.0-alpha04'
   // Match Expo Video's Media3 version to avoid binary-incompatible dependency resolution.
   implementation 'androidx.media3:media3-effect:1.9.1'
+  implementation 'androidx.media3:media3-transformer:1.9.1'
 }

@@ -3,6 +3,9 @@ import ExpoModulesCore
 public class SocialXCameraModule: Module {
   public func definition() -> ModuleDefinition {
     Name("SocialXCamera")
+    AsyncFunction("mixMusic") { (video: String, audio: String, keepOriginal: Bool, promise: Promise) in
+      ReelMusicExporter.export(video: video, audio: audio, keepOriginal: keepOriginal, promise: promise)
+    }
     View(SocialXCameraView.self) {
       Events("onReady", "onError")
       Prop("front") { (view: SocialXCameraView, value: Bool) in view.front = value }

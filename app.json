@@ -54,7 +54,8 @@
             "video"
           ]
         }
-      ]
+      ],
+      "expo-asset"
     ]
   }
 }

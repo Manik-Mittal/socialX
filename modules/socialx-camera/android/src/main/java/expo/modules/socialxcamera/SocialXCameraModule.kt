@@ -7,6 +7,11 @@ import expo.modules.kotlin.modules.ModuleDefinition
 class SocialXCameraModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("SocialXCamera")
+    AsyncFunction("mixMusic") { video: String, audio: String, keepOriginal: Boolean, promise: Promise ->
+      val context = appContext.reactContext
+      if (context == null) promise.reject("MUSIC_CONTEXT", "App is not ready.", null)
+      else ReelMusicExporter.export(context, video, audio, keepOriginal, promise)
+    }
     View(SocialXCameraView::class) {
       Events("onReady", "onError")
       Prop("front") { view: SocialXCameraView, value: Boolean -> view.front = value }

@@ -9,6 +9,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { useAppState } from '../state';
 import { categories, categoryColors, colors, type Category } from '../theme';
 import { CameraStudio } from '../components/CameraStudio';
+import { ReelMusicPicker } from '../components/ReelMusicPicker';
 
 function isVideoAsset(asset: ImagePicker.ImagePickerAsset) {
   return asset.type === 'video' || asset.mimeType?.startsWith('video/') === true;
@@ -28,6 +29,9 @@ function MediaPreview({ asset }: { asset: ImagePicker.ImagePickerAsset | null })
 export default function CreateScreen() {
   const { addReel, profile } = useAppState();
   const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [originalVideo, setOriginalVideo] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [mixing, setMixing] = useState(false);
+  const [musicPending, setMusicPending] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState('');
@@ -46,6 +50,7 @@ export default function CreateScreen() {
       return;
     }
     setAsset(selected);
+    setOriginalVideo(selected); setMusicPending(false);
   }
 
   async function importReel() {
@@ -72,12 +77,13 @@ export default function CreateScreen() {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) return Alert.alert('Access needed', 'Allow photo library access to choose a photo.');
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-      if (!result.canceled) setAsset(result.assets[0]);
+      if (!result.canceled) { setAsset(result.assets[0]); setOriginalVideo(null); setMusicPending(false); }
     } catch { Alert.alert('Could not open your library', 'Please try again.'); }
   }
 
   async function publish() {
-    if (publishing) return;
+    if (publishing || mixing) return;
+    if (musicPending) return Alert.alert('Apply your music', 'Tap Apply music first, or select Original audio only.');
     setPublishError('');
     if (!asset || !title.trim() || !city.trim()) return Alert.alert('Almost there', 'Add a reel or photo, a title and a city.');
     const video = isVideoAsset(asset);
@@ -92,16 +98,17 @@ export default function CreateScreen() {
 
   if (cameraOpen) return <CameraStudio onClose={() => setCameraOpen(false)} onSystemCamera={recordReel} onCapture={selected => { acceptVideo(selected); setCameraOpen(false); }} />;
 
-  return <SafeAreaView style={styles.screen} edges={['top']}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+  return <SafeAreaView style={styles.screen} edges={['top']}><ScrollView pointerEvents={mixing || publishing ? 'none' : 'auto'} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
     <View style={styles.header}><Pressable onPress={() => router.back()} style={styles.close} accessibilityRole="button" accessibilityLabel="Close"><Ionicons name="close" size={23} color={colors.ink} /></Pressable><Text style={styles.headerTitle}>Create</Text><View style={styles.close} /></View>
     <Text style={styles.heading}>Create your next reel.</Text><Text style={styles.subheading}>Record up to 60 seconds, or import a video from your phone.</Text>
-    <View style={styles.mediaBox}><MediaPreview asset={asset} /></View>
+    <View style={styles.mediaBox}>{mixing ? <View style={styles.placeholder}><Text style={styles.placeholderText}>Preparing your reel with music…</Text></View> : <MediaPreview asset={asset} />}</View>
     {asset ? <Text style={styles.mediaDetail}>{isVideoAsset(asset) ? `Video reel${asset.duration != null ? ` · ${Math.ceil(asset.duration / 1000)} sec` : ''}` : 'Photo post'} selected</Text> : null}
     <View style={styles.mediaActions}>
       <Pressable onPress={() => setCameraOpen(true)} style={styles.recordButton} accessibilityRole="button"><GradientFill radius={13} /><Ionicons name="videocam-outline" size={19} color={colors.white} /><Text style={styles.recordText}>Record reel</Text></Pressable>
       <Pressable onPress={importReel} style={styles.importButton} accessibilityRole="button"><Ionicons name="cloud-upload-outline" size={19} color={colors.accent} /><Text style={styles.importText}>Import video</Text></Pressable>
     </View>
     <Pressable onPress={choosePhoto} style={styles.photoButton} accessibilityRole="button"><Ionicons name="image-outline" size={17} color={colors.muted} /><Text style={styles.photoText}>Or share a photo post</Text></Pressable>
+    {originalVideo && <ReelMusicPicker key={originalVideo.uri} original={originalVideo} onApply={setAsset} onBusy={setMixing} onPending={setMusicPending} />}
     <Text style={styles.label}>TITLE *</Text><TextInput value={title} onChangeText={setTitle} placeholder="What is the story?" placeholderTextColor={colors.muted} style={styles.input} maxLength={70} />
     <Text style={styles.label}>DESCRIPTION</Text><TextInput value={description} onChangeText={setDescription} placeholder="Tell people why it matters" placeholderTextColor={colors.muted} style={[styles.input, styles.multiline]} multiline maxLength={240} />
     <Text style={styles.label}>CITY *</Text><TextInput value={city} onChangeText={setCity} placeholder="Where is this?" placeholderTextColor={colors.muted} style={styles.input} maxLength={40} />
