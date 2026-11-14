@@ -1,9 +1,10 @@
+import * as ImagePicker from 'expo-image-picker';
 import { GradientFill } from '../../components/GradientFill';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRef, useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReelCard } from '../../components/ReelCard';
 import { useAppState } from '../../state';
 import { colors } from '../../theme';
@@ -14,10 +15,11 @@ import { displayUsername } from '../../backend/usernames';
 type Section = 'posts' | 'followers' | 'following';
 
 export default function ProfileScreen() {
+  const bottomSpace = 96 + useSafeAreaInsets().bottom;
   const { signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   const [authError, setAuthError] = useState('');
-  const { reels, following, followers, socialLoading, socialError, refresh, pending, profile, profileLoading, profileError, retryProfile, toggleFollowing, updateProfile } = useAppState();
+  const { reels, following, followers, socialLoading, socialError, refresh, pending, profile, profileLoading, profileError, retryProfile, toggleFollowing, updateProfile, updatePhoto } = useAppState();
   const [savingProfile, setSavingProfile] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [section, setSection] = useState<Section>('posts');
@@ -25,6 +27,18 @@ export default function ProfileScreen() {
   const [draftName, setDraftName] = useState(profile.name);
   const [draftBio, setDraftBio] = useState(profile.bio);
   const [draftUsername, setDraftUsername] = useState(profile.username ?? '');
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const photoLock = useRef(false);
+  async function changePhoto() {
+    if (photoLock.current) return;
+    photoLock.current = true; setPhotoBusy(true); setPhotoError('');
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+      if (!result.canceled) await updatePhoto(result.assets[0]);
+    } catch (e) { setPhotoError(e instanceof Error ? e.message : 'Could not update your photo.'); }
+    finally { photoLock.current = false; setPhotoBusy(false); }
+  }
   const myPosts = reels.filter(reel => reel.handle === '@you');
 
   function beginEdit() {
@@ -57,10 +71,12 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomSpace }]} keyboardShouldPersistTaps="handled">
         <View style={styles.topBar}><Text style={styles.pageTitle}>Your corner.</Text><Ionicons name="sparkles-outline" size={23} color={colors.accent} /></View>
         <View style={styles.hero}><GradientFill tone="soft" radius={28} />
-          <View style={styles.avatar}><GradientFill radius={30} /><Text style={styles.avatarText}>{profile.name.charAt(0).toUpperCase()}</Text></View>
+          <Pressable onPress={() => void changePhoto()} disabled={photoBusy || profileLoading || pending.length > 0} accessibilityRole="button" accessibilityLabel="Change profile photo" style={styles.avatar}>{profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={{ width: 78, height: 78, borderRadius: 27 }} /> : <><GradientFill radius={30} /><Text style={styles.avatarText}>{profile.name.charAt(0).toUpperCase()}</Text></>}</Pressable>
+          <Pressable onPress={() => void changePhoto()} disabled={photoBusy || profileLoading || pending.length > 0} accessibilityRole="button"><Text style={styles.editText}>{photoBusy ? 'Uploading photo…' : 'Change photo'}</Text></Pressable>
+          {!!photoError && <Text accessibilityRole="alert" style={styles.note}>{photoError}</Text>}
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.handle}>{profile.username ? displayUsername(profile.username) : 'Choose your username in Edit profile'}</Text>
           <Text style={styles.bio}>{profile.bio || 'Add a bio to tell people about yourself.'}</Text>

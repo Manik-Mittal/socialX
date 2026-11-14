@@ -1,14 +1,23 @@
 import { GradientFill } from '../../components/GradientFill';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { Reel } from '../../data';
 import { ReelCard } from '../../components/ReelCard';
 import { useAppState } from '../../state';
 import { categories, categoryColors, colors, type Category } from '../../theme';
 
+const viewabilityConfig = { viewAreaCoveragePercentThreshold: 35, minimumViewTime: 100 };
+
 export default function DiscoverScreen() {
+  const insets = useSafeAreaInsets();
+  const bottomSpace = 96 + insets.bottom;
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: { isViewable: boolean; item: Reel }[] }) => {
+    setActiveId(viewableItems.find(token => token.isViewable && token.item.mediaType === 'video')?.item.id ?? null);
+  }, []);
   const { reels, feedIds, followingHandles, socialLoading, socialError, refresh, loadMore, hasMore, pending } = useAppState();
   const [category, setCategory] = useState<Category>('All');
   const [query, setQuery] = useState('');
@@ -20,27 +29,29 @@ export default function DiscoverScreen() {
     (category === 'All' || reel.category === category) &&
     `${reel.title} ${reel.description} ${reel.creator} ${reel.city}`.toLowerCase().includes(query.toLowerCase().trim()),
   ), [category, query, reels, feedIds, feed, followingHandles]);
-  return <SafeAreaView style={styles.screen} edges={['top']}>
-    <View style={styles.header}><View><Text style={styles.logo}>social<Text style={styles.logoX}>x.</Text></Text><Text style={styles.tagline}>A little discovery, every day.</Text></View><Pressable style={styles.plus} onPress={() => router.push('/create')} accessibilityRole="button" accessibilityLabel="Create a reel"><GradientFill radius={14} /><Ionicons name="add" size={24} color={colors.white} /></Pressable></View>
-    <FlatList refreshing={socialLoading} onRefresh={refresh} data={filtered} keyExtractor={item => item.id} renderItem={({ item }) => <ReelCard reel={item} />} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}
+  return <View style={styles.screen}>
+    <FlatList contentInsetAdjustmentBehavior="never" progressViewOffset={insets.top} extraData={activeId} onViewableItemsChanged={onViewableItemsChanged} viewabilityConfig={viewabilityConfig} refreshing={socialLoading} onRefresh={refresh} data={filtered} keyExtractor={item => item.id} renderItem={({ item }) => <ReelCard reel={item} expanded active={activeId === item.id} />} contentContainerStyle={[styles.list, { paddingBottom: bottomSpace }]} showsVerticalScrollIndicator={false}
       ListHeaderComponent={<>
+    <View style={[styles.header, { paddingTop: insets.top + 10 }]}><View><Text style={styles.logo}>social<Text style={styles.logoX}>x.</Text></Text><Text style={styles.tagline}>A little discovery, every day.</Text></View><Pressable style={styles.plus} onPress={() => router.push('/create')} accessibilityRole="button" accessibilityLabel="Create a reel"><GradientFill radius={14} /><Ionicons name="add" size={24} color={colors.white} /></Pressable></View>
+ 
+      <View style={styles.feedHeader}>
         <Pressable accessibilityRole="button" accessibilityLabel="Search users" onPress={() => router.push('/search')} style={[styles.searchBox, { marginTop: 12 }]}><Ionicons name="people-outline" size={22} color={colors.accent} /><Text style={styles.searchInput}>Search people</Text><Ionicons name="search-outline" size={21} color={colors.muted} /></Pressable>
         <View style={styles.feedTabs}>{['For you', 'Following'].map(label => <Pressable key={label} onPress={() => setFeed(label)} style={[styles.feedTab, feed === label && styles.feedTabActive]} accessibilityRole="button" accessibilityState={{ selected: feed === label }}><Text style={[styles.feedText, feed === label && styles.feedTextActive]}>{label}</Text></Pressable>)}</View>
-        <View style={styles.searchBox}><Ionicons name="search-outline" size={19} color={colors.muted} /><TextInput value={query} onChangeText={setQuery} placeholder="Find your next obsession" placeholderTextColor={colors.muted} style={styles.searchInput} accessibilityLabel="Search stories or cities" />{query ? <Pressable onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search"><Ionicons name="close-circle" size={20} color={colors.muted} /></Pressable> : null}</View>
+        <View style={styles.searchBox}><Ionicons name="search-outline" size={19} color={colors.muted} /><TextInput value={query} onChangeText={setQuery} placeholder="Search reels, creators or places" placeholderTextColor={colors.muted} style={styles.searchInput} accessibilityLabel="Search stories or cities" />{query ? <Pressable onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search"><Ionicons name="close-circle" size={20} color={colors.muted} /></Pressable> : null}</View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.people}>
           <Pressable style={styles.person} onPress={() => router.push('/create')} accessibilityRole="button"><View style={styles.createRing}><Ionicons name="add" size={25} color={colors.accent} /></View><Text style={styles.personName}>Create</Text></Pressable>
           {creators.map(person => <Pressable key={person.handle} style={styles.person} disabled={!person.authorId} onPress={() => router.push({ pathname: '/user/[id]', params: { id: person.authorId! } })} accessibilityRole="button" accessibilityLabel={`Open ${person.creator}'s profile`}><View style={styles.ring}><GradientFill radius={31} /><View style={[styles.avatar, { backgroundColor: categoryColors[person.category] }]}><Text style={styles.initial}>{person.creator[0]}</Text></View></View><Text style={styles.personName}>{person.creator}</Text></Pressable>)}
         </ScrollView>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categories}>{categories.map(item => <Pressable key={item} onPress={() => setCategory(item)} style={[styles.chip, category === item && styles.chipActive]} accessibilityRole="button" accessibilityState={{ selected: category === item }}><Text style={[styles.chipText, category === item && styles.chipTextActive]}>{item === 'All' ? 'All interests' : item}</Text></Pressable>)}</ScrollView>
         <View style={styles.sectionRow}><Text style={styles.sectionTitle}>{query ? 'Search results' : feed === 'Following' ? 'From your people' : 'Worth your scroll'}</Text><Text style={styles.sectionHint}>{filtered.length} STORIES</Text></View>
-      </>}
+      </View></>}
       ListFooterComponent={hasMore ? <Pressable disabled={socialLoading || pending.length > 0} onPress={loadMore} style={styles.reset}><Text style={styles.resetText}>{pending.includes('more') ? 'Loading…' : 'Load more stories'}</Text></Pressable> : undefined}
       ListEmptyComponent={<View style={styles.empty}><Ionicons name="sparkles-outline" size={32} color={colors.accent} /><Text style={styles.emptyTitle}>{socialLoading ? 'Loading stories…' : socialError ? 'Could not load stories' : feed === 'Following' ? 'Find your people' : 'Nothing here yet'}</Text><Text style={styles.emptyText}>{feed === 'Following' ? 'Follow creators in For you to build your own feed.' : 'Try another search or interest.'}</Text><Pressable style={styles.reset} onPress={() => { setFeed('For you'); setCategory('All'); setQuery(''); }} accessibilityRole="button"><Text style={styles.resetText}>Explore all stories</Text></Pressable></View>}
     />
-  </SafeAreaView>;
+  </View>;
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas }, list: { paddingHorizontal: 18, paddingBottom: 24 },
+  screen: { flex: 1, backgroundColor: colors.canvas }, list: { paddingBottom: 24 }, feedHeader: { paddingHorizontal: 18 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 14, backgroundColor: colors.white },
   logo: { color: colors.ink, fontSize: 33, fontWeight: '900', letterSpacing: -1.8 }, logoX: { color: colors.accent }, tagline: { color: colors.muted, fontSize: 13, marginTop: 1 },
   plus: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.ink, justifyContent: 'center', alignItems: 'center' },

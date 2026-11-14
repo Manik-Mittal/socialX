@@ -108,10 +108,11 @@ export function ReelCamera({ onCapture, onClose, onSystemCamera }: CameraStudioP
         </View>}
       </View>
       {permission === 'denied' ? <View style={s.row}><Pressable style={s.button} onPress={() => void Linking.openSettings()}><Text style={s.text}>Open settings</Text></Pressable><Pressable style={s.button} onPress={onSystemCamera}><Text style={s.text}>Phone camera</Text></Pressable></View> : <>
-        {!!FilterCameraView && <ReelFilterPicker selected={filter} intensity={intensity} disabled={locked} onSelect={setFilter} onIntensity={setIntensity} />}
-        <View style={s.row}><Pressable accessibilityLabel="Zoom out" disabled={locked} style={s.button} onPress={() => setZoom(value => Math.max(0, value - .05))}><Text style={s.text}>−</Text></Pressable><Text style={s.text}>Zoom · {Math.round(zoom * 100)}%</Text><Pressable accessibilityLabel="Zoom in" disabled={locked} style={s.button} onPress={() => setZoom(value => Math.min(1, value + .05))}><Text style={s.text}>+</Text></Pressable></View>
         <Pressable accessibilityRole="button" accessibilityLabel={recording ? 'Stop recording' : 'Start recording'} disabled={!ready || finishing} onPress={() => recording ? stop() : void record()} style={[s.record, (!ready || finishing) && s.dim]}><View style={recording ? s.stop : s.dot} /></Pressable>
         <Text style={s.hint}>{finishing ? 'Saving recording…' : recording ? 'Tap to stop' : 'Tap to record'}</Text>
+        {!!FilterCameraView && <ReelFilterPicker selected={filter} intensity={intensity} disabled={locked} onSelect={setFilter} onIntensity={setIntensity} />}
+        <View style={s.row}><Pressable accessibilityLabel="Zoom out" disabled={locked} style={s.button} onPress={() => setZoom(value => Math.max(0, value - .05))}><Text style={s.text}>−</Text></Pressable><Text style={s.text}>Zoom · {Math.round(zoom * 100)}%</Text><Pressable accessibilityLabel="Zoom in" disabled={locked} style={s.button} onPress={() => setZoom(value => Math.min(1, value + .05))}><Text style={s.text}>+</Text></Pressable></View>
+
         {!FilterCameraView && <Text style={s.hint}>Original camera · Install the new SocialX app build to use color filters.</Text>}
       </>}
     </>}

@@ -2,14 +2,15 @@ import { GradientFill } from '../../components/GradientFill';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppState } from '../../state';
 import { colors } from '../../theme';
 
 export default function CreatorScreen() {
+  const bottomSpace = 96 + useSafeAreaInsets().bottom;
   const { reels, followers, following, savedIds, socialLoading, socialError, refresh } = useAppState();
   const myPosts = reels.filter(reel => reel.handle === '@you');
-  return <SafeAreaView style={styles.screen} edges={['top']}><ScrollView contentContainerStyle={styles.content}>
+  return <SafeAreaView style={styles.screen} edges={['top']}><ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomSpace }]}>
     <Pressable onPress={() => router.navigate('/profile')} accessibilityRole="button" accessibilityLabel="Back to profile" style={styles.backButton}><Ionicons name="arrow-back" size={21} color={colors.ink} /><Text style={styles.backText}>Profile</Text></Pressable>
     <Text style={styles.eyebrow}>CREATE · CONNECT · GROW</Text><Text style={styles.heading}>Creator studio.</Text>
     <Text style={styles.subheading}>Your publishing activity and community.</Text>

@@ -1,24 +1,49 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useEvent, useEventListener } from 'expo';
+import { useCallback, useEffect, useState } from 'react';
 import { ReelEngagement } from './ReelEngagement';
 import { ManageReelButton } from './ManageReelButton';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import type { Reel } from '../data';
 import { colors } from '../theme';
 import { useAppState } from '../state';
 import { CreatorViews, useReelView } from './ReelViews';
+import { getReelMuted, useReelSound } from '../reelSound';
 
-function ReelVideo({ uri, reel }: { uri: string; reel: Reel }) {
-  const player = useVideoPlayer(uri);
-  useReelView(player, reel.id, reel.authorId);
-  return <VideoView player={player} style={styles.media} nativeControls contentFit="cover" />;
+function ReelVideo({ uri, reel, mediaHeight, active }: { uri: string; reel: Reel; mediaHeight?: number; active?: boolean }) {
+  const player = useVideoPlayer(uri, video => { video.loop = true; video.muted = getReelMuted(); });
+  useReelSound(player);
+  const [focused, setFocused] = useState(false);
+  const [foreground, setForeground] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
+  useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => setForeground(state === 'active'));
+    const visibility = () => setForeground(!document.hidden);
+    if (Platform.OS === 'web') document.addEventListener('visibilitychange', visibility);
+    return () => { subscription.remove(); if (Platform.OS === 'web') document.removeEventListener('visibilitychange', visibility); };
+  }, []);
+  const allowed = focused && foreground && active !== false;
+  const { status } = useEvent(player, 'statusChange', { status: player.status });
+  useReelView(player, reel.id, reel.authorId, allowed);
+  useEffect(() => {
+    if (!allowed) player.pause();
+    else if (active === true && status !== 'error') player.play();
+    // The hook releases the player; do not call it in unmount cleanup.
+  }, [active, allowed, player, status]);
+  useEventListener(player, 'playingChange', ({ isPlaying }) => { if (isPlaying && !allowed) player.pause(); });
+  return <View style={[styles.media, mediaHeight ? { height: mediaHeight } : undefined]}>
+    <VideoView player={player} style={{ width: '100%', height: '100%' }} nativeControls contentFit={mediaHeight !== undefined ? 'cover' : 'contain'} surfaceType="textureView" playsInline />
+    {allowed && status === 'loading' && <View pointerEvents="none" style={styles.videoNotice}><ActivityIndicator color={colors.white} size="large" /></View>}
+    {status === 'error' && <View pointerEvents="none" style={styles.videoNotice}><Text style={{ color: colors.white }}>Video couldn’t load. Pull down to refresh.</Text></View>}
+  </View>;
 }
 
-function ReelMedia({ reel }: { reel: Reel }) {
+function ReelMedia({ reel, mediaHeight, active }: { reel: Reel; mediaHeight?: number; active?: boolean }) {
   if (reel.mediaMissing) return <View style={[styles.media, styles.illustration]}><Text style={styles.description}>Media unavailable. Refresh to retry.</Text></View>;
   if (reel.mediaType === 'video' && reel.mediaUri) {
-    return <ReelVideo uri={reel.mediaUri} reel={reel} />;
+    return <ReelVideo uri={reel.mediaUri} reel={reel} mediaHeight={mediaHeight} active={active} />;
   }
   if (reel.mediaType === 'image' && reel.mediaUri) {
     return <Image source={{ uri: reel.mediaUri }} style={styles.media} resizeMode="cover" />;
@@ -26,14 +51,16 @@ function ReelMedia({ reel }: { reel: Reel }) {
   return <View style={[styles.media, styles.illustration]}><Text style={styles.description}>Media unavailable. Refresh to retry.</Text></View>;
 }
 
-export function ReelCard({ reel, editable = false }: { reel: Reel; editable?: boolean }) {
+export function ReelCard({ reel, editable = false, expanded = false, active }: { reel: Reel; editable?: boolean; expanded?: boolean; active?: boolean }) {
+  const { width, height } = useWindowDimensions();
+  const mediaHeight = expanded ? Math.max(240, Math.min(Math.min(width, 600) * 16 / 9, height - 190)) : undefined;
   const { savedIds, toggleSaved, followingHandles, toggleFollowing, pending, socialLoading } = useAppState();
   const saved = savedIds.includes(reel.id);
   const following = followingHandles.includes(reel.handle);
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, expanded && styles.expandedCard]}>
       <View style={styles.authorHeader}><Pressable style={{ flex: 1, flexDirection: 'row', alignItems: 'center', minHeight: 44 }} accessibilityRole="button" accessibilityLabel={`Open ${reel.creator}'s profile`} disabled={!reel.authorId} onPress={() => router.push({ pathname: '/user/[id]', params: { id: reel.authorId! } })}><View style={styles.creatorAvatar}><Text style={styles.creatorInitial}>{reel.creator[0]}</Text></View><View style={styles.creatorText}><Text style={styles.creator}>{reel.creator}</Text><Text style={styles.handle}>{reel.city} · {reel.mediaType === 'video' ? 'Reel' : 'Story'}</Text></View></Pressable>{reel.handle !== '@you' ? <Pressable disabled={pending.length > 0 || socialLoading} onPress={() => toggleFollowing(reel.handle)} style={styles.followButton} accessibilityRole="button" accessibilityLabel={`${following ? 'Unfollow' : 'Follow'} ${reel.creator}`}><Text style={styles.followText}>{following ? 'Following' : '+ Follow'}</Text></Pressable> : null}</View>
-      <ReelMedia reel={reel} />
+      <ReelMedia reel={reel} mediaHeight={mediaHeight} active={active} />
       <View style={styles.content}>
         <View style={styles.topline}>
           <Text style={styles.category}>{reel.category.toUpperCase()} · {reel.city}</Text>
@@ -60,7 +87,9 @@ export function ReelCard({ reel, editable = false }: { reel: Reel; editable?: bo
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.white, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, marginBottom: 18 },
-  media: { width: '100%', height: 350 },
+  expandedCard: { borderRadius: 0, borderWidth: 0, marginBottom: 12 },
+  videoNotice: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center' },
+  media: { width: '100%', height: 350, backgroundColor: colors.dark },
   authorHeader: { padding: 13, flexDirection: 'row', alignItems: 'center' },
   posterCaption: { position: 'absolute', bottom: 25, left: 23, right: 23 },
   posterKicker: { color: colors.ink, fontSize: 12, letterSpacing: 2, fontWeight: '800', marginBottom: 8 },

@@ -43,7 +43,18 @@
           "microphonePermission": "Allow SocialX to record sound in your reels."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow SocialX to access videos you choose to save.",
+          "savePhotosPermission": "Allow SocialX to save exported reels to your photo library.",
+          "granularPermissions": [
+            "video"
+          ]
+        }
+      ]
     ]
   }
 }

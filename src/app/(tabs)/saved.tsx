@@ -1,15 +1,16 @@
 import { router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReelCard } from '../../components/ReelCard';
 import { useAppState } from '../../state';
 import { colors } from '../../theme';
 
 export default function SavedScreen() {
+  const bottomSpace = 96 + useSafeAreaInsets().bottom;
   const { reels, savedIds, socialLoading, socialError, refresh } = useAppState();
   const saved = reels.filter(reel => savedIds.includes(reel.id));
   return <SafeAreaView style={styles.screen} edges={['top']}>
-    <FlatList refreshing={socialLoading} onRefresh={refresh} data={saved} keyExtractor={item => item.id} renderItem={({ item }) => <ReelCard reel={item} />} contentContainerStyle={styles.list}
+    <FlatList refreshing={socialLoading} onRefresh={refresh} data={saved} keyExtractor={item => item.id} renderItem={({ item }) => <ReelCard reel={item} />} contentContainerStyle={[styles.list, { paddingBottom: bottomSpace }]}
       ListHeaderComponent={<><Text style={styles.eyebrow}>YOUR COLLECTION</Text><Text style={styles.heading}>Saved stories</Text><Text style={styles.subheading}>The things you want to come back to.</Text></>}
       ListEmptyComponent={<View style={styles.empty}><Text style={styles.icon}>🔖</Text><Text style={styles.emptyTitle}>{socialLoading ? 'Loading your collection…' : socialError ? 'Could not load saved posts' : 'Your list starts here'}</Text><Text style={styles.emptyText}>Save reels you love and find them here anytime.</Text><Pressable onPress={() => router.replace('/')} style={styles.button}><Text style={styles.buttonText}>Explore stories</Text></Pressable></View>} />
   </SafeAreaView>;

@@ -1,3 +1,5 @@
+import { uploadAvatar, avatarUrl } from './backend/avatars';
+import type { ImagePickerAsset } from 'expo-image-picker';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState as NativeAppState, Pressable, Text, View } from 'react-native';
 import type { Reel } from './data';
@@ -14,6 +16,7 @@ type AppState = {
   retryProfile: () => void; refresh: () => void; loadMore: () => void;
   toggleSaved: (id: string) => void; toggleFollowing: (handle: string) => void;
   updateProfile: (name: string, bio: string, username: string) => Promise<void>;
+  updatePhoto: (asset: ImagePickerAsset) => Promise<void>;
   addReel: (reel: Reel) => Promise<void>;
   cacheReel: (reel: Reel) => void;
   removeCachedReel: (id: string) => void;
@@ -119,6 +122,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setProfile(next); setReels(current => current.map(reel => reel.handle === '@you' ? { ...reel, creator: next.name, username: next.username } : reel));
     } finally { unlock('profile'); }
   }
+  async function updatePhoto(asset: ImagePickerAsset) {
+    if (!userId || locks.current.size || profileLoading) throw new Error('Wait for your profile to finish loading.');
+    lock('photo');
+    try {
+      const path = await uploadAvatar(userId, asset);
+      const url = await avatarUrl(path);
+      if (alive.current) setProfile(current => ({ ...current, avatarUrl: url }));
+    } finally { unlock('photo'); }
+  }
   async function addReel(reel: Reel) {
     if (!userId) throw new Error('Log in to publish a post.');
     if (socialError || socialLoading || locks.current.size) throw new Error('Wait for your account to load or retry the connection first.');
@@ -132,7 +144,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }
   return <StateContext.Provider value={{ reels, feedIds, savedIds, followingHandles: following.map(person => person.handle), following, followers,
     profile, profileLoading, profileError, socialLoading, socialError, pending, hasMore,
-    retryProfile: refresh, refresh, loadMore, toggleSaved, toggleFollowing, updateProfile, addReel, cacheReel, removeCachedReel }}>
+    retryProfile: refresh, refresh, loadMore, toggleSaved, toggleFollowing, updateProfile, updatePhoto, addReel, cacheReel, removeCachedReel }}>
     {userId && (socialError || actionError || socialLoading) ? <View style={{ padding: 12, backgroundColor: colors.accentSoft }}>
       <Text accessibilityRole={socialError || actionError ? 'alert' : undefined} style={{ fontSize: 14, color: colors.ink }}>{socialError || actionError || 'Loading your account…'}</Text>
       {!socialLoading && <Pressable onPress={() => void refresh()} accessibilityRole="button"><Text style={{ color: colors.accent, fontSize: 15, paddingTop: 8 }}>Retry / refresh</Text></Pressable>}

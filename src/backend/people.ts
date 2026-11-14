@@ -1,3 +1,4 @@
+import { avatarUrl } from './avatars';
 import { client, hydrate } from './social';
 import { validId } from './chat';
 export type PublicPerson = { id: string; display_name: string; bio: string; username: string | null };
@@ -11,7 +12,7 @@ export async function searchPeople(term: string, offset = 0): Promise<PublicPers
 export async function publicProfile(id: string, viewer: string) {
   if (!validId(id)) throw new Error('Invalid profile link.');
   const results = await Promise.all([
-    client().from('profiles').select('id,display_name,bio,username').eq('id', id).maybeSingle(),
+    client().from('profiles').select('*').eq('id', id).maybeSingle(),
     client().from('posts').select('id', { count: 'exact', head: true }).eq('author_id', id),
     client().from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', id),
     client().from('follows').select('following_id', { count: 'exact', head: true }).eq('follower_id', id),
@@ -19,7 +20,7 @@ export async function publicProfile(id: string, viewer: string) {
   ]);
   for (const result of results) if (result.error) throw result.error;
   if (!results[0].data) throw new Error('This profile is no longer available.');
-  return { person: results[0].data as PublicPerson, posts: results[1].count ?? 0, followers: results[2].count ?? 0, following: results[3].count ?? 0, isFollowing: !!results[4].data };
+  return { avatarUrl: await avatarUrl(results[0].data.avatar_path), person: results[0].data as PublicPerson, posts: results[1].count ?? 0, followers: results[2].count ?? 0, following: results[3].count ?? 0, isFollowing: !!results[4].data };
 }
 export async function personPosts(id: string, viewer: string, offset = 0) {
   const { data, error } = await client().from('posts').select('*').eq('author_id', id).order('created_at', { ascending: false }).order('id').range(offset, offset + 29);

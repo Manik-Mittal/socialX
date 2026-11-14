@@ -3,13 +3,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../auth';
 import { chatError, findContacts, inbox, type Contact, type Conversation } from '../../backend/chat';
 import { ChatError, ChatHeader, chatStyles as s } from '../../components/ChatUI';
 import { colors } from '../../theme';
 
 export default function MessagesScreen() {
+  const bottomSpace = 96 + useSafeAreaInsets().bottom;
   const { session } = useAuth();
   const userId = session!.user.id;
   const { postId } = useLocalSearchParams<{ postId?: string }>();
@@ -61,10 +62,10 @@ export default function MessagesScreen() {
     {postId && <View style={s.notice}><Text style={s.text}>Choose someone, then tap Send in the chat.</Text><Pressable accessibilityRole="button" onPress={() => router.setParams({ postId: undefined })} style={s.icon}><Text style={s.link}>Cancel sharing</Text></Pressable></View>}
     <View style={{ padding: 16, gap: 8 }}><TextInput value={query} onChangeText={text => { setQuery(text); setContacts([]); setSearching(text.trim().length >= 2); }} placeholder="Name or @username" accessibilityLabel="Search people to message" style={s.input} maxLength={40} /><Text style={s.muted}>Enter at least 2 letters to start a new chat.</Text></View>
     <ChatError error={error} retry={() => void load()} />
-    {isSearch ? <FlatList data={contacts} keyboardShouldPersistTaps="handled" keyExtractor={item => item.id} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => open(item.id)} style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: colors.border }}><Text style={s.text}>{item.display_name}</Text><Text style={s.muted}>{displayUsername(item.username)}</Text></Pressable>}
+    {isSearch ? <FlatList contentContainerStyle={{ paddingBottom: bottomSpace }} data={contacts} keyboardShouldPersistTaps="handled" keyExtractor={item => item.id} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => open(item.id)} style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: colors.border }}><Text style={s.text}>{item.display_name}</Text><Text style={s.muted}>{displayUsername(item.username)}</Text></Pressable>}
       ListEmptyComponent={<View style={s.empty}><Text style={s.muted}>{searching ? 'Searching…' : searchError || 'No matching people. Try another name.'}</Text></View>}
       ListFooterComponent={contacts.length === 30 ? <Text style={[s.muted, { padding: 16 }]}>Showing 30 matches. Narrow your search to find someone.</Text> : undefined} />
-      : <FlatList data={items} keyExtractor={item => item.peer_id} refreshing={loading} onRefresh={() => void load()} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => open(item.peer_id)} style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+      : <FlatList contentContainerStyle={{ paddingBottom: bottomSpace }} data={items} keyExtractor={item => item.peer_id} refreshing={loading} onRefresh={() => void load()} renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => open(item.peer_id)} style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}><Text style={s.link}>{item.display_name.slice(0, 1).toUpperCase()}</Text></View>
         <View style={{ flex: 1 }}><Text style={[s.text, { fontWeight: '700' }]}>{item.display_name}</Text><Text numberOfLines={1} style={s.muted}>{item.kind === 'reel' ? 'Shared a reel' : item.body}</Text></View><Ionicons name="chevron-forward" size={20} color={colors.muted} />
       </Pressable>}
